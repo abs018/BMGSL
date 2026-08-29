@@ -1,724 +1,1113 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BMGSL Live Cricket Scoreboard</title>
-<style>
-/* ===== Basic reset ===== */
-*{box-sizing:border-box}
-body{margin:0;background:transparent;font-family:Arial,sans-serif;color:#fff}
-:root{--teal:#0e6e7c;--teal-dark:#0a545f;--gold:#ffd447}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>BMGSL Live Cricket Scoreboard</title>
+  <style>
+    /* ===== Basic reset ===== */
+    * {
+      box-sizing: border-box
+    }
 
-/* ===== TOP OVERLAY BAR (OBS / PRISM ke liye — ek hi single line bar) ===== */
-.wrap{width:min(1100px,96vw);margin:3vh auto 100px auto}
-.obar{background:rgba(5,15,30,.95);border:2px solid var(--gold);border-radius:14px;
-  display:flex;align-items:center;flex-wrap:nowrap;padding:7px 16px;gap:10px;overflow:hidden}
-.obar-team{font-weight:900;font-size:clamp(13px,2.1vw,26px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
-.obar-score{font-weight:900;font-size:clamp(13px,2.1vw,26px);color:var(--gold);white-space:nowrap;flex:0 0 auto}
-.obar-sep{color:rgba(255,255,255,.35);flex:0 0 auto;font-size:clamp(12px,1.6vw,18px)}
-.obar-bat{display:flex;flex-direction:column;justify-content:center;gap:2px;flex:1 1 0;min-width:0}
-.obar-bat div{font-size:clamp(10px,1.4vw,15px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.obar-bowl{font-size:clamp(10px,1.4vw,16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 0;min-width:0}
-.obar-crr{font-size:clamp(10px,1.4vw,16px);white-space:nowrap;flex:0 0 auto;color:var(--gold);font-weight:800}
-@media(max-width:600px){.obar{padding:5px 10px;gap:6px}}
+    body {
+      margin: 0;
+      background: transparent;
+      font-family: Arial, sans-serif;
+      color: #fff
+    }
 
-/* ===== APP (manual control + scorecard) ===== */
-.app{max-width:480px;margin:26px auto 60px;color:#111}
-.tabs{display:flex;gap:8px;margin-bottom:14px}
-.tabBtn{flex:1;padding:10px;border:0;border-radius:8px;background:#d7dee0;font-weight:800;cursor:pointer;font-size:14px}
-.tabBtn.active{background:var(--teal);color:#fff}
-.tabBtn.danger{background:#c0392b;color:#fff;flex:0 0 auto;padding:10px 14px}
+    :root {
+      --teal: #0e6e7c;
+      --teal-dark: #0a545f;
+      --gold: #ffd447
+    }
 
-.panel{background:#fff;padding:16px;border-radius:12px;margin-bottom:14px;color:#111}
-.panel h3{margin:0 0 10px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.grid2 input,.grid2 select{width:100%}
-input,select{padding:11px;border-radius:8px;border:1px solid #c7cfd3;background:#fbfcfd;color:#111;font-size:14px}
-.fullbtn{margin-top:12px;width:100%;padding:13px;border:0;border-radius:8px;background:var(--teal);color:#fff;font-weight:900;font-size:15px;cursor:pointer}
+    /* ===== TOP OVERLAY BAR (OBS / PRISM ke liye — ek hi single line bar) ===== */
+    .wrap {
+      width: min(1100px, 96vw);
+      margin: 3vh auto 100px auto
+    }
 
-.bbHeader{background:var(--teal);color:#fff;display:flex;justify-content:space-between;padding:9px 14px;border-radius:10px 10px 0 0;font-weight:800;font-size:14px}
-.bbRow{background:#fff;border:1px solid #e2e6e8;border-top:0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
-.bbRow:last-child{border-radius:0 0 10px 10px}
-.batName{display:flex;align-items:center;gap:8px;font-weight:700}
-.dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--teal);flex:0 0 auto}
-.dot.on{background:#e74c3c;border-color:#e74c3c}
-.statSmall{font-size:12px;color:#666;text-align:right}
-.bowlerName{font-weight:700}
+    .obar {
+      background: rgba(5, 15, 30, .95);
+      border: 2px solid var(--gold);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+      padding: 7px 16px;
+      gap: 10px;
+      overflow: hidden
+    }
 
-.inningsBar{background:var(--teal);color:#fff;text-align:center;padding:9px;border-radius:8px;margin:12px 0 10px;font-weight:800;font-size:14px}
-.strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px}
+    .obar-team {
+      font-weight: 900;
+      font-size: clamp(13px, 2.1vw, 26px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 0 1 auto
+    }
 
-.pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:4px}
-.padBtn{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;border-radius:10px;border:1px solid #ccc;background:#fff;cursor:pointer;user-select:none;color:#111}
-.padBtn.teal{background:var(--teal);color:#fff;border-color:var(--teal)}
-.padBtn.red{background:#e74c3c;color:#fff;border-color:#e74c3c}
-.padBtn.blue{background:#29b6d8;color:#fff;border-color:#29b6d8}
-.padBtn.green{background:#27ae60;color:#fff;border-color:#27ae60}
-.padBtn:active{transform:scale(.94)}
-.padBtn.selected{outline:3px solid var(--gold);box-shadow:0 0 0 3px var(--gold) inset;position:relative}
-.padBtn.selected::after{content:'●';position:absolute;top:2px;right:6px;font-size:10px;color:var(--gold)}
-#extraIndicator{text-align:center;font-weight:800;color:#0a545f;min-height:16px;margin-top:6px}
+    .obar-score {
+      font-weight: 900;
+      font-size: clamp(13px, 2.1vw, 26px);
+      color: var(--gold);
+      white-space: nowrap;
+      flex: 0 0 auto
+    }
 
-table{width:100%;border-collapse:collapse;margin-bottom:16px;background:#fff;border-radius:8px;overflow:hidden}
-th,td{padding:8px 6px;border-bottom:1px solid #eee;text-align:left;font-size:12.5px}
-th{background:var(--teal);color:#fff;font-size:12px}
-.inningsTitle{font-weight:900;margin:16px 0 6px;font-size:15px;color:#0a545f}
-.small{font-size:12px;color:#666;margin-top:6px}
-.resultBox{background:var(--gold);color:#111;font-weight:900;text-align:center;padding:12px;border-radius:10px;margin-bottom:14px}
-.hidden{display:none !important}
+    .obar-sep {
+      color: rgba(255, 255, 255, .35);
+      flex: 0 0 auto;
+      font-size: clamp(12px, 1.6vw, 18px)
+    }
 
-/* ===== Apna khud ka Modal/Popup (browser confirm/prompt use nahi karte — wo iframe me block ho jate hain) ===== */
-.modalOverlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:999;padding:16px}
-.modalBox{background:#fff;color:#111;padding:20px;border-radius:14px;width:min(360px,92vw);max-height:80vh;overflow:auto}
-.modalTitle{font-weight:900;font-size:16px;margin-bottom:10px}
-.modalInput{width:100%;padding:11px;border-radius:8px;border:1px solid #c7cfd3;margin-top:4px;font-size:14px}
-.modalButtons{display:flex;gap:8px;margin-top:16px}
-.modalButtons button{flex:1;padding:11px;border:0;border-radius:8px;font-weight:800;cursor:pointer;font-size:14px}
-.modalButtons .primary{background:var(--teal);color:#fff}
-.modalButtons .secondary{background:#e2e6e8;color:#111}
-.modalOptionBtn{display:block;width:100%;padding:12px;margin-bottom:8px;border-radius:8px;border:1px solid #ccc;background:#f7f9fa;font-weight:700;cursor:pointer;text-align:left;font-size:14px}
-</style>
+    .obar-bat {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+      flex: 1 1 0;
+      min-width: 0
+    }
+
+    .obar-bat div {
+      font-size: clamp(10px, 1.4vw, 15px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .obar-bowl {
+      font-size: clamp(10px, 1.4vw, 16px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1 1 0;
+      min-width: 0
+    }
+
+    .obar-crr {
+      font-size: clamp(10px, 1.4vw, 16px);
+      white-space: nowrap;
+      flex: 0 0 auto;
+      color: var(--gold);
+      font-weight: 800
+    }
+
+    @media(max-width:600px) {
+      .obar {
+        padding: 5px 10px;
+        gap: 6px
+      }
+    }
+
+    /* ===== APP (manual control + scorecard) ===== */
+    .app {
+      max-width: 480px;
+      margin: 26px auto 60px;
+      color: #111
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px
+    }
+
+    .tabBtn {
+      flex: 1;
+      padding: 10px;
+      border: 0;
+      border-radius: 8px;
+      background: #d7dee0;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 14px
+    }
+
+    .tabBtn.active {
+      background: var(--teal);
+      color: #fff
+    }
+
+    .tabBtn.danger {
+      background: #c0392b;
+      color: #fff;
+      flex: 0 0 auto;
+      padding: 10px 14px
+    }
+
+    .panel {
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      color: #111
+    }
+
+    .panel h3 {
+      margin: 0 0 10px
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px
+    }
+
+    .grid2 input,
+    .grid2 select {
+      width: 100%
+    }
+
+    input,
+    select {
+      padding: 11px;
+      border-radius: 8px;
+      border: 1px solid #c7cfd3;
+      background: #fbfcfd;
+      color: #111;
+      font-size: 14px
+    }
+
+    .fullbtn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 13px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--teal);
+      color: #fff;
+      font-weight: 900;
+      font-size: 15px;
+      cursor: pointer
+    }
+
+    .bbHeader {
+      background: var(--teal);
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      padding: 9px 14px;
+      border-radius: 10px 10px 0 0;
+      font-weight: 800;
+      font-size: 14px
+    }
+
+    .bbRow {
+      background: #fff;
+      border: 1px solid #e2e6e8;
+      border-top: 0;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    .bbRow:last-child {
+      border-radius: 0 0 10px 10px
+    }
+
+    .batName {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700
+    }
+
+    .dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: 2px solid var(--teal);
+      flex: 0 0 auto
+    }
+
+    .dot.on {
+      background: #e74c3c;
+      border-color: #e74c3c
+    }
+
+    .statSmall {
+      font-size: 12px;
+      color: #666;
+      text-align: right
+    }
+
+    .bowlerName {
+      font-weight: 700
+    }
+
+    .inningsBar {
+      background: var(--teal);
+      color: #fff;
+      text-align: center;
+      padding: 9px;
+      border-radius: 8px;
+      margin: 12px 0 10px;
+      font-weight: 800;
+      font-size: 14px
+    }
+
+    .strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 12px
+    }
+
+    .pad {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 4px
+    }
+
+    .padBtn {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      font-weight: 900;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      user-select: none;
+      color: #111
+    }
+
+    .padBtn.teal {
+      background: var(--teal);
+      color: #fff;
+      border-color: var(--teal)
+    }
+
+    .padBtn.red {
+      background: #e74c3c;
+      color: #fff;
+      border-color: #e74c3c
+    }
+
+    .padBtn.blue {
+      background: #29b6d8;
+      color: #fff;
+      border-color: #29b6d8
+    }
+
+    .padBtn.green {
+      background: #27ae60;
+      color: #fff;
+      border-color: #27ae60
+    }
+
+    .padBtn:active {
+      transform: scale(.94)
+    }
+
+    .padBtn.selected {
+      outline: 3px solid var(--gold);
+      box-shadow: 0 0 0 3px var(--gold) inset;
+      position: relative
+    }
+
+    .padBtn.selected::after {
+      content: '●';
+      position: absolute;
+      top: 2px;
+      right: 6px;
+      font-size: 10px;
+      color: var(--gold)
+    }
+
+    #extraIndicator {
+      text-align: center;
+      font-weight: 800;
+      color: #0a545f;
+      min-height: 16px;
+      margin-top: 6px
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden
+    }
+
+    th,
+    td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+      font-size: 12.5px
+    }
+
+    th {
+      background: var(--teal);
+      color: #fff;
+      font-size: 12px
+    }
+
+    .inningsTitle {
+      font-weight: 900;
+      margin: 16px 0 6px;
+      font-size: 15px;
+      color: #0a545f
+    }
+
+    .small {
+      font-size: 12px;
+      color: #666;
+      margin-top: 6px
+    }
+
+    .resultBox {
+      background: var(--gold);
+      color: #111;
+      font-weight: 900;
+      text-align: center;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 14px
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    /* ===== Apna khud ka Modal/Popup (browser confirm/prompt use nahi karte — wo iframe me block ho jate hain) ===== */
+    .modalOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 16px
+    }
+
+    .modalBox {
+      background: #fff;
+      color: #111;
+      padding: 20px;
+      border-radius: 14px;
+      width: min(360px, 92vw);
+      max-height: 80vh;
+      overflow: auto
+    }
+
+    .modalTitle {
+      font-weight: 900;
+      font-size: 16px;
+      margin-bottom: 10px
+    }
+
+    .modalInput {
+      width: 100%;
+      padding: 11px;
+      border-radius: 8px;
+      border: 1px solid #c7cfd3;
+      margin-top: 4px;
+      font-size: 14px
+    }
+
+    .modalButtons {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px
+    }
+
+    .modalButtons button {
+      flex: 1;
+      padding: 11px;
+      border: 0;
+      border-radius: 8px;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 14px
+    }
+
+    .modalButtons .primary {
+      background: var(--teal);
+      color: #fff
+    }
+
+    .modalButtons .secondary {
+      background: #e2e6e8;
+      color: #111
+    }
+
+    .modalOptionBtn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #f7f9fa;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: left;
+      font-size: 14px
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- ============ TOP OVERLAY BAR — OBS/PRISM me isi hisse ko browser-source banao ============ -->
-<div class="wrap" id="overlayBar">
-  <div class="obar">
-    <div class="obar-team" id="battingTeam">TEAM A</div>
-    <div class="obar-score" id="scoreCombo">0/0 (0.0 ov)</div>
-    <div class="obar-sep">•</div>
-    <div class="obar-bat" id="batInfo">
-      <div id="batLine1">-</div>
-      <div id="batLine2">-</div>
-    </div>
-    <div class="obar-sep">•</div>
-    <div class="obar-crr" id="crrInfo">CRR 0.00</div>
-    <div class="obar-sep">•</div>
-    <div class="obar-bowl" id="bowlInfo">-</div>
-  </div>
-</div>
-
-<!-- ============ APP (manual control panel + scorecard) — isko OBS me nahi lagana, sirf phone/laptop pe kholo ============ -->
-<div class="app" id="appSection">
-
-  <div class="tabs">
-    <button id="tabLive" class="tabBtn active" onclick="showPage('live')">🎮 Live Control</button>
-    <button id="tabScorecard" class="tabBtn" onclick="showPage('scorecard')">📋 Full Scorecard</button>
-    <button class="tabBtn danger" onclick="newMatch()">New Match</button>
-  </div>
-
-  <!-- ---- PAGE 1: LIVE CONTROL ---- -->
-  <div id="pageLive">
-
-    <!-- Match setup form -->
-    <div class="panel" id="setupBox">
-      <h3>Match Setup</h3>
-      <div class="grid2">
-        <input id="setTeamA" placeholder="Team A ka naam">
-        <input id="setTeamB" placeholder="Team B ka naam">
-        <input id="setOvers" placeholder="Total overs (e.g. 20)" type="number">
-        <input id="setBat1" placeholder="Batsman 1 ka naam">
-        <input id="setBat2" placeholder="Batsman 2 ka naam">
-        <input id="setBowler" placeholder="Bowler ka naam">
+  <!-- ============ TOP OVERLAY BAR — OBS/PRISM me isi hisse ko browser-source banao ============ -->
+  <div class="wrap" id="overlayBar">
+    <div class="obar">
+      <div class="obar-team" id="battingTeam">TEAM A</div>
+      <div class="obar-score" id="scoreCombo">0/0 (0.0 ov)</div>
+      <div class="obar-sep">•</div>
+      <div class="obar-bat" id="batInfo">
+        <div id="batLine1">-</div>
+        <div id="batLine2">-</div>
       </div>
-      <button class="fullbtn" onclick="startMatch()">Match Shuru Karo</button>
-      <div class="small">Ye ek dafa fill karo — uske baad neeche wale buttons se poora match manually control hoga.</div>
-    </div>
-
-    <!-- Live scoring panel (jab tak match start nahi hota, hidden rehta hai) -->
-    <div class="panel hidden" id="liveBox">
-      <div class="bbHeader"><span>BATSMAN</span><span>BOWLER</span></div>
-      <div class="bbRow">
-        <div class="batName"><span class="dot" id="dot1"></span><span id="nameBat1">-</span></div>
-        <div class="bowlerName" id="bowlerName">-</div>
-      </div>
-      <div class="bbRow">
-        <div class="statSmall" id="statBat1">0(0)</div>
-        <div class="statSmall" id="statBowler">0/0 (0.0)</div>
-      </div>
-      <div class="bbRow">
-        <div class="batName"><span class="dot" id="dot2"></span><span id="nameBat2">-</span></div>
-        <div></div>
-      </div>
-      <div class="bbRow">
-        <div class="statSmall" id="statBat2">0(0)</div>
-        <div></div>
-      </div>
-
-      <div class="inningsBar" id="inningsLabel">1st Innings</div>
-
-      <div class="strip">
-        <div class="box" style="background:var(--teal)"><span class="lab">EXTRAS</span><span id="valExtras">0</span></div>
-        <div class="box" style="background:var(--teal)"><span class="lab">CRR</span><span id="valCRR">0.00</span></div>
-        <div class="box" style="background:var(--teal)"><span class="lab">RRR</span><span id="valRRR">-</span></div>
-      </div>
-
-      <div class="pad">
-        <div class="padBtn" onclick="ballRun(1)">1</div>
-        <div class="padBtn" onclick="ballRun(2)">2</div>
-        <div class="padBtn" onclick="ballRun(3)">3</div>
-        <div class="padBtn teal" onclick="ballRun(4)">4</div>
-        <div class="padBtn" onclick="ballRun(5)">5</div>
-
-        <div class="padBtn teal" onclick="ballRun(6)">6</div>
-        <div class="padBtn blue" style="font-size:12px;line-height:1.1;flex-direction:column;gap:1px" onclick="swapNow()" title="Batsman ka strike manually swap karo">⇄<br>SWAP</div>
-        <div class="padBtn red" onclick="wicket()">W</div>
-        <div class="padBtn" onclick="ballRun(0)">0</div>
-        <div class="padBtn blue" onclick="moreMenu()">...</div>
-
-        <div class="padBtn green" id="extraBtnNb" onclick="extraBall('nb')">NB</div>
-        <div class="padBtn" id="extraBtnLb" onclick="extraBall('lb')">LB</div>
-        <div class="padBtn" id="extraBtnB" onclick="extraBall('b')">B</div>
-        <div class="padBtn teal" id="extraBtnWd" onclick="extraBall('wd')">WD</div>
-        <div class="padBtn" onclick="undo()">UNDO</div>
-      </div>
-
-      <div id="extraIndicator"></div>
-      <div class="small" id="inningsStatus"></div>
+      <div class="obar-sep">•</div>
+      <div class="obar-crr" id="crrInfo">CRR 0.00</div>
+      <div class="obar-sep">•</div>
+      <div class="obar-bowl" id="bowlInfo">-</div>
     </div>
   </div>
 
-  <!-- ---- PAGE 2: FULL SCORECARD ---- -->
-  <div id="pageScorecard" class="hidden">
-    <div id="scorecardContent"><div class="panel">Abhi match shuru nahi hua.</div></div>
+  <!-- ============ APP (manual control panel + scorecard) — isko OBS me nahi lagana, sirf phone/laptop pe kholo ============ -->
+  <div class="app" id="appSection">
+
+    <div class="tabs">
+      <button id="tabLive" class="tabBtn active" onclick="showPage('live')">🎮 Live Control</button>
+      <button id="tabScorecard" class="tabBtn" onclick="showPage('scorecard')">📋 Full Scorecard</button>
+      <button class="tabBtn danger" onclick="newMatch()">New Match</button>
+    </div>
+
+    <!-- ---- PAGE 1: LIVE CONTROL ---- -->
+    <div id="pageLive">
+
+      <!-- Match setup form -->
+      <div class="panel" id="setupBox">
+        <h3>Match Setup</h3>
+        <div class="grid2">
+          <input id="setTeamA" placeholder="Team A ka naam">
+          <input id="setTeamB" placeholder="Team B ka naam">
+          <input id="setOvers" placeholder="Total overs (e.g. 20)" type="number">
+          <input id="setBat1" placeholder="Batsman 1 ka naam">
+          <input id="setBat2" placeholder="Batsman 2 ka naam">
+          <input id="setBowler" placeholder="Bowler ka naam">
+        </div>
+        <button class="fullbtn" onclick="startMatch()">Match Shuru Karo</button>
+        <div class="small">Ye ek dafa fill karo — uske baad neeche wale buttons se poora match manually control hoga.
+        </div>
+      </div>
+
+      <!-- Live scoring panel (jab tak match start nahi hota, hidden rehta hai) -->
+      <div class="panel hidden" id="liveBox">
+        <div class="bbHeader"><span>BATSMAN</span><span>BOWLER</span></div>
+        <div class="bbRow">
+          <div class="batName"><span class="dot" id="dot1"></span><span id="nameBat1">-</span></div>
+          <div class="bowlerName" id="bowlerName">-</div>
+        </div>
+        <div class="bbRow">
+          <div class="statSmall" id="statBat1">0(0)</div>
+          <div class="statSmall" id="statBowler">0/0 (0.0)</div>
+        </div>
+        <div class="bbRow">
+          <div class="batName"><span class="dot" id="dot2"></span><span id="nameBat2">-</span></div>
+          <div></div>
+        </div>
+        <div class="bbRow">
+          <div class="statSmall" id="statBat2">0(0)</div>
+          <div></div>
+        </div>
+
+        <div class="inningsBar" id="inningsLabel">1st Innings</div>
+
+        <div class="strip">
+          <div class="box" style="background:var(--teal)"><span class="lab">EXTRAS</span><span id="valExtras">0</span>
+          </div>
+          <div class="box" style="background:var(--teal)"><span class="lab">CRR</span><span id="valCRR">0.00</span>
+          </div>
+          <div class="box" style="background:var(--teal)"><span class="lab">RRR</span><span id="valRRR">-</span></div>
+        </div>
+
+        <div class="pad">
+          <div class="padBtn" onclick="ballRun(1)">1</div>
+          <div class="padBtn" onclick="ballRun(2)">2</div>
+          <div class="padBtn" onclick="ballRun(3)">3</div>
+          <div class="padBtn teal" onclick="ballRun(4)">4</div>
+          <div class="padBtn" onclick="ballRun(5)">5</div>
+
+          <div class="padBtn teal" onclick="ballRun(6)">6</div>
+          <div class="padBtn blue" style="font-size:12px;line-height:1.1;flex-direction:column;gap:1px"
+            onclick="swapNow()" title="Batsman ka strike manually swap karo">⇄<br>SWAP</div>
+          <div class="padBtn red" onclick="wicket()">W</div>
+          <div class="padBtn" onclick="ballRun(0)">0</div>
+          <div class="padBtn blue" onclick="moreMenu()">...</div>
+
+          <div class="padBtn green" id="extraBtnNb" onclick="extraBall('nb')">NB</div>
+          <div class="padBtn" id="extraBtnLb" onclick="extraBall('lb')">LB</div>
+          <div class="padBtn" id="extraBtnB" onclick="extraBall('b')">B</div>
+          <div class="padBtn teal" id="extraBtnWd" onclick="extraBall('wd')">WD</div>
+          <div class="padBtn" onclick="undo()">UNDO</div>
+        </div>
+
+        <div id="extraIndicator"></div>
+        <div class="small" id="inningsStatus"></div>
+      </div>
+    </div>
+
+    <!-- ---- PAGE 2: FULL SCORECARD ---- -->
+    <div id="pageScorecard" class="hidden">
+      <div id="scorecardContent">
+        <div class="panel">Abhi match shuru nahi hua.</div>
+      </div>
+    </div>
+
   </div>
 
-</div>
-
-<!-- Apna Modal Popup (New Match / naya batsman / naya bowler waghera sab isi se poochte hain) -->
-<div class="modalOverlay hidden" id="modalOverlay">
-  <div class="modalBox">
-    <div class="modalTitle" id="modalTitle"></div>
-    <div id="modalBody"></div>
-    <div class="modalButtons" id="modalButtons"></div>
+  <!-- Apna Modal Popup (New Match / naya batsman / naya bowler waghera sab isi se poochte hain) -->
+  <div class="modalOverlay hidden" id="modalOverlay">
+    <div class="modalBox">
+      <div class="modalTitle" id="modalTitle"></div>
+      <div id="modalBody"></div>
+      <div class="modalButtons" id="modalButtons"></div>
+    </div>
   </div>
-</div>
 
-<script>
-/* =====================================================================
-   BMGSL SCORER — poori Roman Urdu comments ke sath
-   Simple, ek hi file, koi extra framework nahi — sirf plain JS + localStorage
-   ===================================================================== */
+  <script>
+    /* =====================================================================
+       BMGSL SCORER — poori Roman Urdu comments ke sath
+       Simple, ek hi file, koi extra framework nahi — sirf plain JS + localStorage
+       ===================================================================== */
 
-const STORAGE_KEY = 'bmgsl_match_v1';
-let M = null;          // current match state (poora data isi object me hai)
-let undoStack = [];    // undo ke liye purani states yahan save hoti hain
-let pendingExtra = null;   // NB/WD/B/LB "select" mode — jab tak koi ek set hai, agla number usi extra me add hoga
+    const STORAGE_KEY = 'bmgsl_match_v1';
+    let M = null;          // current match state (poora data isi object me hai)
+    let undoStack = [];    // undo ke liye purani states yahan save hoti hain
+    let pendingExtra = null;   // NB/WD/B/LB "select" mode — jab tak koi ek set hai, agla number usi extra me add hoga
 
-const EXTRA_LABELS = {nb:'NO BALL', wd:'WIDE', b:'BYE', lb:'LEG BYE'};
-const EXTRA_BTN_IDS = {nb:'extraBtnNb', wd:'extraBtnWd', b:'extraBtnB', lb:'extraBtnLb'};
+    const EXTRA_LABELS = { nb: 'NO BALL', wd: 'WIDE', b: 'BYE', lb: 'LEG BYE' };
+    const EXTRA_BTN_IDS = { nb: 'extraBtnNb', wd: 'extraBtnWd', b: 'extraBtnB', lb: 'extraBtnLb' };
 
-function updateExtraButtonsUI(){
-  Object.keys(EXTRA_BTN_IDS).forEach(k=>{
-    const el = document.getElementById(EXTRA_BTN_IDS[k]);
-    if(el) el.classList.toggle('selected', pendingExtra===k);
-  });
-  const ind = document.getElementById('extraIndicator');
-  if(ind) ind.textContent = pendingExtra ? (EXTRA_LABELS[pendingExtra] + ' selected — ab run number dabao (0,1,2,3,4,6)') : '';
-}
+    function updateExtraButtonsUI() {
+      Object.keys(EXTRA_BTN_IDS).forEach(k => {
+        const el = document.getElementById(EXTRA_BTN_IDS[k]);
+        if (el) el.classList.toggle('selected', pendingExtra === k);
+      });
+      const ind = document.getElementById('extraIndicator');
+      if (ind) ind.textContent = pendingExtra ? (EXTRA_LABELS[pendingExtra] + ' selected — ab run number dabao (0,1,2,3,4,6)') : '';
+    }
 
-/* ---------- Helpers ---------- */
-function oversStr(balls){                 // legal balls ko "overs.balls" format me dikhana
-  return Math.floor(balls/6) + '.' + (balls%6);
-}
-function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
+    /* ---------- Helpers ---------- */
+    function oversStr(balls) {                 // legal balls ko "overs.balls" format me dikhana
+      return Math.floor(balls / 6) + '.' + (balls % 6);
+    }
+    function fmt(n) { return (Math.round(n * 100) / 100).toFixed(2); }
 
-function newBatsman(name){
-  return {name: name||'Batsman', runs:0, balls:0, fours:0, sixes:0, out:false, howOut:''};
-}
-function newBowler(name){
-  return {name: name||'Bowler', balls:0, runs:0, wickets:0};
-}
-function newInnings(battingTeam, bowlingTeam, bat1, bat2, bowlerName){
-  return {
-    battingTeam, bowlingTeam,
-    runs:0, wickets:0, legalBalls:0,
-    extras:{wd:0,nb:0,b:0,lb:0},
-    batsmen:[ newBatsman(bat1), newBatsman(bat2) ],
-    strikerIdx:0, nonStrikerIdx:1,
-    bowlers:[ newBowler(bowlerName) ],
-    currentBowlerIdx:0,
-    completed:false,
-    allBatsmen:[]   // sab players (jo out ho chuke) ka poora record — scorecard ke liye
-  };
-}
+    function newBatsman(name) {
+      return { name: name || 'Batsman', runs: 0, balls: 0, fours: 0, sixes: 0, out: false, howOut: '' };
+    }
+    function newBowler(name) {
+      return { name: name || 'Bowler', balls: 0, runs: 0, wickets: 0 };
+    }
+    function newInnings(battingTeam, bowlingTeam, bat1, bat2, bowlerName) {
+      return {
+        battingTeam, bowlingTeam,
+        runs: 0, wickets: 0, legalBalls: 0,
+        extras: { wd: 0, nb: 0, b: 0, lb: 0 },
+        batsmen: [newBatsman(bat1), newBatsman(bat2)],
+        strikerIdx: 0, nonStrikerIdx: 1,
+        bowlers: [newBowler(bowlerName)],
+        currentBowlerIdx: 0,
+        completed: false,
+        allBatsmen: []   // sab players (jo out ho chuke) ka poora record — scorecard ke liye
+      };
+    }
 
-/* ---------- Save / Load ---------- */
-function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(M)); }catch(e){} }
-function load(){
-  try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
-  catch(e){ return null; }
-}
-function snapshot(){                       // undo ke liye current state ki copy rakho
-  undoStack.push(JSON.stringify(M));
-  if(undoStack.length>60) undoStack.shift();
-}
-function undo(){
-  pendingExtra = null; updateExtraButtonsUI();   // undo se pehle koi bhi pending selection cancel
-  if(undoStack.length===0) return;         // kuch bhi undo karne ko nahi — chup chaap ignore karo
-  M = JSON.parse(undoStack.pop());
-  save(); render();
-}
+    /* ---------- Save / Load ---------- */
+    function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(M)); } catch (e) { } }
+    function load() {
+      try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
+      catch (e) { return null; }
+    }
+    function snapshot() {                       // undo ke liye current state ki copy rakho
+      undoStack.push(JSON.stringify(M));
+      if (undoStack.length > 60) undoStack.shift();
+    }
+    function undo() {
+      pendingExtra = null; updateExtraButtonsUI();   // undo se pehle koi bhi pending selection cancel
+      if (undoStack.length === 0) return;         // kuch bhi undo karne ko nahi — chup chaap ignore karo
+      M = JSON.parse(undoStack.pop());
+      save(); render();
+    }
 
-/* =====================================================================
-   APNA KHUD KA MODAL SYSTEM
-   Browser ka confirm()/prompt() Claude ke andar (iframe) kabhi kabhi
-   block ho jata hai is liye buttons kaam nahi karte — isi wajah se
-   apna khud ka chhota popup bana liya jo hamesha reliably kaam karega.
-   ===================================================================== */
-function closeModal(){ document.getElementById('modalOverlay').classList.add('hidden'); }
+    /* =====================================================================
+       APNA KHUD KA MODAL SYSTEM
+       Browser ka confirm()/prompt() Claude ke andar (iframe) kabhi kabhi
+       block ho jata hai is liye buttons kaam nahi karte — isi wajah se
+       apna khud ka chhota popup bana liya jo hamesha reliably kaam karega.
+       ===================================================================== */
+    function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
 
-function askText(title, placeholder, defVal, onOk){
-  const ov = document.getElementById('modalOverlay');
-  document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalBody').innerHTML =
-    '<input type="text" id="modalInputField" class="modalInput" placeholder="'+placeholder+'">';
-  document.getElementById('modalInputField').value = defVal || '';
-  const btns = document.getElementById('modalButtons'); btns.innerHTML='';
-  const cancelBtn=document.createElement('button'); cancelBtn.className='secondary'; cancelBtn.textContent='Cancel';
-  cancelBtn.onclick=closeModal;
-  const okBtn=document.createElement('button'); okBtn.className='primary'; okBtn.textContent='OK';
-  okBtn.onclick=()=>{ const v=document.getElementById('modalInputField').value.trim(); closeModal(); onOk(v); };
-  btns.appendChild(cancelBtn); btns.appendChild(okBtn);
-  ov.classList.remove('hidden');
-  setTimeout(()=>{ const f=document.getElementById('modalInputField'); if(f) f.focus(); },50);
-}
+    function askText(title, placeholder, defVal, onOk) {
+      const ov = document.getElementById('modalOverlay');
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML =
+        '<input type="text" id="modalInputField" class="modalInput" placeholder="' + placeholder + '">';
+      document.getElementById('modalInputField').value = defVal || '';
+      const btns = document.getElementById('modalButtons'); btns.innerHTML = '';
+      const cancelBtn = document.createElement('button'); cancelBtn.className = 'secondary'; cancelBtn.textContent = 'Cancel';
+      cancelBtn.onclick = closeModal;
+      const okBtn = document.createElement('button'); okBtn.className = 'primary'; okBtn.textContent = 'OK';
+      okBtn.onclick = () => { const v = document.getElementById('modalInputField').value.trim(); closeModal(); onOk(v); };
+      btns.appendChild(cancelBtn); btns.appendChild(okBtn);
+      ov.classList.remove('hidden');
+      setTimeout(() => { const f = document.getElementById('modalInputField'); if (f) f.focus(); }, 50);
+    }
 
-function askConfirm(title, message, onResult){
-  const ov = document.getElementById('modalOverlay');
-  document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalBody').innerHTML = '<div>'+message+'</div>';
-  const btns = document.getElementById('modalButtons'); btns.innerHTML='';
-  const noBtn=document.createElement('button'); noBtn.className='secondary'; noBtn.textContent='Nahi';
-  noBtn.onclick=()=>{ closeModal(); onResult(false); };
-  const yesBtn=document.createElement('button'); yesBtn.className='primary'; yesBtn.textContent='Haan';
-  yesBtn.onclick=()=>{ closeModal(); onResult(true); };
-  btns.appendChild(noBtn); btns.appendChild(yesBtn);
-  ov.classList.remove('hidden');
-}
+    function askConfirm(title, message, onResult) {
+      const ov = document.getElementById('modalOverlay');
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = '<div>' + message + '</div>';
+      const btns = document.getElementById('modalButtons'); btns.innerHTML = '';
+      const noBtn = document.createElement('button'); noBtn.className = 'secondary'; noBtn.textContent = 'Nahi';
+      noBtn.onclick = () => { closeModal(); onResult(false); };
+      const yesBtn = document.createElement('button'); yesBtn.className = 'primary'; yesBtn.textContent = 'Haan';
+      yesBtn.onclick = () => { closeModal(); onResult(true); };
+      btns.appendChild(noBtn); btns.appendChild(yesBtn);
+      ov.classList.remove('hidden');
+    }
 
-function askChoice(title, options, onPick){        // options: [{label, value}]
-  const ov = document.getElementById('modalOverlay');
-  document.getElementById('modalTitle').textContent = title;
-  const body = document.getElementById('modalBody'); body.innerHTML='';
-  options.forEach(opt=>{
-    const b=document.createElement('button');
-    b.className='modalOptionBtn'; b.textContent=opt.label;
-    b.onclick=()=>{ closeModal(); onPick(opt.value); };
-    body.appendChild(b);
-  });
-  const btns = document.getElementById('modalButtons'); btns.innerHTML='';
-  const cancelBtn=document.createElement('button'); cancelBtn.className='secondary'; cancelBtn.style.flex='1';
-  cancelBtn.textContent='Cancel'; cancelBtn.onclick=closeModal;
-  btns.appendChild(cancelBtn);
-  ov.classList.remove('hidden');
-}
+    function askChoice(title, options, onPick) {        // options: [{label, value}]
+      const ov = document.getElementById('modalOverlay');
+      document.getElementById('modalTitle').textContent = title;
+      const body = document.getElementById('modalBody'); body.innerHTML = '';
+      options.forEach(opt => {
+        const b = document.createElement('button');
+        b.className = 'modalOptionBtn'; b.textContent = opt.label;
+        b.onclick = () => { closeModal(); onPick(opt.value); };
+        body.appendChild(b);
+      });
+      const btns = document.getElementById('modalButtons'); btns.innerHTML = '';
+      const cancelBtn = document.createElement('button'); cancelBtn.className = 'secondary'; cancelBtn.style.flex = '1';
+      cancelBtn.textContent = 'Cancel'; cancelBtn.onclick = closeModal;
+      btns.appendChild(cancelBtn);
+      ov.classList.remove('hidden');
+    }
 
-/* ---------- New Match ---------- */
-function resetMatchState(){
-  localStorage.removeItem(STORAGE_KEY);
-  undoStack = [];
-  M = null;
-  pendingExtra = null;
-  document.getElementById('setupBox').classList.remove('hidden');
-  document.getElementById('liveBox').classList.add('hidden');
-  document.getElementById('setTeamA').value='';
-  document.getElementById('setTeamB').value='';
-  document.getElementById('setOvers').value='';
-  document.getElementById('setBat1').value='';
-  document.getElementById('setBat2').value='';
-  document.getElementById('setBowler').value='';
-  showPage('live');
-  renderTopBarDefault();
-}
-function newMatch(){
-  if(M && !M.matchOver){
-    askConfirm('New Match', 'Naya match shuru karne se purana chal raha match delete ho jayega. Pakka?', (yes)=>{
-      if(yes) resetMatchState();
-    });
-  } else {
-    resetMatchState();               // koi match chal hi nahi raha (ya khatam ho chuka) — seedha reset karo
-  }
-}
+    /* ---------- New Match ---------- */
+    function resetMatchState() {
+      localStorage.removeItem(STORAGE_KEY);
+      undoStack = [];
+      M = null;
+      pendingExtra = null;
+      document.getElementById('setupBox').classList.remove('hidden');
+      document.getElementById('liveBox').classList.add('hidden');
+      document.getElementById('setTeamA').value = '';
+      document.getElementById('setTeamB').value = '';
+      document.getElementById('setOvers').value = '';
+      document.getElementById('setBat1').value = '';
+      document.getElementById('setBat2').value = '';
+      document.getElementById('setBowler').value = '';
+      showPage('live');
+      renderTopBarDefault();
+    }
+    function newMatch() {
+      if (M && !M.matchOver) {
+        askConfirm('New Match', 'Naya match shuru karne se purana chal raha match delete ho jayega. Pakka?', (yes) => {
+          if (yes) resetMatchState();
+        });
+      } else {
+        resetMatchState();               // koi match chal hi nahi raha (ya khatam ho chuka) — seedha reset karo
+      }
+    }
 
-function startMatch(){
-  const teamA = document.getElementById('setTeamA').value.trim() || 'Team A';
-  const teamB = document.getElementById('setTeamB').value.trim() || 'Team B';
-  const overs = parseInt(document.getElementById('setOvers').value) || 20;
-  const bat1 = document.getElementById('setBat1').value.trim() || 'Batsman 1';
-  const bat2 = document.getElementById('setBat2').value.trim() || 'Batsman 2';
-  const bowler = document.getElementById('setBowler').value.trim() || 'Bowler';
+    function startMatch() {
+      const teamA = document.getElementById('setTeamA').value.trim() || 'Team A';
+      const teamB = document.getElementById('setTeamB').value.trim() || 'Team B';
+      const overs = parseInt(document.getElementById('setOvers').value) || 20;
+      const bat1 = document.getElementById('setBat1').value.trim() || 'Batsman 1';
+      const bat2 = document.getElementById('setBat2').value.trim() || 'Batsman 2';
+      const bowler = document.getElementById('setBowler').value.trim() || 'Bowler';
 
-  M = {
-    teamA, teamB, oversLimit: overs,
-    currentInnings: 1,
-    target: null,
-    innings1: newInnings(teamA, teamB, bat1, bat2, bowler),
-    innings2: null,
-    matchOver:false, resultText:''
-  };
-  save();
-  document.getElementById('setupBox').classList.add('hidden');
-  document.getElementById('liveBox').classList.remove('hidden');
-  render();
-}
+      M = {
+        teamA, teamB, oversLimit: overs,
+        currentInnings: 1,
+        target: null,
+        innings1: newInnings(teamA, teamB, bat1, bat2, bowler),
+        innings2: null,
+        matchOver: false, resultText: ''
+      };
+      save();
+      document.getElementById('setupBox').classList.add('hidden');
+      document.getElementById('liveBox').classList.remove('hidden');
+      render();
+    }
 
-/* ---------- Current innings helper ---------- */
-function curInnings(){ return M.currentInnings===1 ? M.innings1 : M.innings2; }
+    /* ---------- Current innings helper ---------- */
+    function curInnings() { return M.currentInnings === 1 ? M.innings1 : M.innings2; }
 
-/* ---------- Core scoring actions ---------- */
-function ballRun(runs){
-  if(!M || curInnings().completed) return;
+    /* ---------- Core scoring actions ---------- */
+    function ballRun(runs) {
+      if (!M || curInnings().completed) return;
 
-  // agar koi NB/WD/B/LB "select" mode me hai, to ye number usi extra ke sath add hoga
-  if(pendingExtra){
-    applyExtra(pendingExtra, runs);
-    return;
-  }
+      // agar koi NB/WD/B/LB "select" mode me hai, to ye number usi extra ke sath add hoga
+      if (pendingExtra) {
+        applyExtra(pendingExtra, runs);
+        return;
+      }
 
-  snapshot();
-  const inn = curInnings();
-  const striker = inn.batsmen[inn.strikerIdx];
-  const bowler  = inn.bowlers[inn.currentBowlerIdx];
+      snapshot();
+      const inn = curInnings();
+      const striker = inn.batsmen[inn.strikerIdx];
+      const bowler = inn.bowlers[inn.currentBowlerIdx];
 
-  striker.runs += runs; striker.balls += 1;
-  if(runs===4) striker.fours+=1;
-  if(runs===6) striker.sixes+=1;
+      striker.runs += runs; striker.balls += 1;
+      if (runs === 4) striker.fours += 1;
+      if (runs === 6) striker.sixes += 1;
 
-  inn.runs += runs;
-  inn.legalBalls += 1;
+      inn.runs += runs;
+      inn.legalBalls += 1;
 
-  bowler.runs += runs; bowler.balls += 1;
+      bowler.runs += runs; bowler.balls += 1;
 
-  if(runs%2===1) swapStrike(inn);         // taak runs par strike change
+      if (runs % 2 === 1) swapStrike(inn);         // taak runs par strike change
 
-  afterLegalBall(inn);
-}
+      afterLegalBall(inn);
+    }
 
-/* NB/WD/B/LB button dabane par pehle sirf "select" hota hai (highlight ho jata hai).
-   Dobara usi button ko dabao to selection cancel ho jati hai.
-   Uske baad jo bhi number button (0,1,2,3,4,6...) dabaoge, wahi extra ke sath add ho jayega
-   (jaise NB + 4 = total 5 runs; WD + 1 = total 2 runs; B/LB + 2 = 2 byes/leg-byes). */
-function extraBall(type){
-  if(!M || curInnings().completed) return;
+    /* NB/WD/B/LB button dabane par pehle sirf "select" hota hai (highlight ho jata hai).
+       Dobara usi button ko dabao to selection cancel ho jati hai.
+       Uske baad jo bhi number button (0,1,2,3,4,6...) dabaoge, wahi extra ke sath add ho jayega
+       (jaise NB + 4 = total 5 runs; WD + 1 = total 2 runs; B/LB + 2 = 2 byes/leg-byes). */
+    function extraBall(type) {
+      if (!M || curInnings().completed) return;
 
-  if(pendingExtra===type){                // dobara wahi button — selection cancel
-    pendingExtra = null;
-    updateExtraButtonsUI();
-    return;
-  }
+      if (pendingExtra === type) {                // dobara wahi button — selection cancel
+        pendingExtra = null;
+        updateExtraButtonsUI();
+        return;
+      }
 
-  pendingExtra = type;                     // select mode on — ab number ka wait
-  updateExtraButtonsUI();
-}
+      pendingExtra = type;                     // select mode on — ab number ka wait
+      updateExtraButtonsUI();
+    }
 
-/* Extra ko chuna hua number ke sath apply karta hai */
-function applyExtra(type, runs){
-  pendingExtra = null;
-  updateExtraButtonsUI();
+    /* Extra ko chuna hua number ke sath apply karta hai */
+    function applyExtra(type, runs) {
+      pendingExtra = null;
+      updateExtraButtonsUI();
 
-  snapshot();
-  const inn = curInnings();
-  const striker = inn.batsmen[inn.strikerIdx];
-  const bowler = inn.bowlers[inn.currentBowlerIdx];
+      snapshot();
+      const inn = curInnings();
+      const striker = inn.batsmen[inn.strikerIdx];
+      const bowler = inn.bowlers[inn.currentBowlerIdx];
 
-  if(type==='wd'){                         // WIDE — 1 (extra) + chuna hua number; ball count nahi hoti
-    const total = 1 + runs;
-    inn.extras.wd += total; inn.runs += total; bowler.runs += total;
-    if(runs%2===1) swapStrike(inn);        // dauray hue runs taak hon to strike badle
-    save(); render();
-  } else if(type==='nb'){                  // NO BALL — 1 penalty extra + jo runs bat se lage wo batsman ke khaate me
-    inn.extras.nb += 1; inn.runs += 1 + runs; bowler.runs += 1 + runs;
-    striker.runs += runs;                  // NB ke number wale runs batsman ko milte hain (real cricket ki tarah)
-    if(runs===4) striker.fours += 1;
-    if(runs===6) striker.sixes += 1;
-    if(runs%2===1) swapStrike(inn);        // taak runs par strike badal jata hai
-    save(); render();
-  } else if(type==='b'){                   // BYE — legal ball, chuna hua number hi total bye runs hai
-    inn.extras.b += runs; inn.runs += runs;
-    striker.balls += 1;
-    bowler.balls += 1;
-    if(runs%2===1) swapStrike(inn);
-    afterLegalBall(inn);
-  } else if(type==='lb'){                  // LEG BYE — legal ball, chuna hua number hi total leg-bye runs hai
-    inn.extras.lb += runs; inn.runs += runs;
-    striker.balls += 1;
-    bowler.balls += 1;
-    if(runs%2===1) swapStrike(inn);
-    afterLegalBall(inn);
-  }
-}
+      if (type === 'wd') {                         // WIDE — 1 (extra) + chuna hua number; ball count nahi hoti
+        const total = 1 + runs;
+        inn.extras.wd += total; inn.runs += total; bowler.runs += total;
+        if (runs % 2 === 1) swapStrike(inn);        // dauray hue runs taak hon to strike badle
+        save(); render();
+      } else if (type === 'nb') {                  // NO BALL — 1 penalty extra + jo runs bat se lage wo batsman ke khaate me
+        inn.extras.nb += 1; inn.runs += 1 + runs; bowler.runs += 1 + runs;
+        striker.runs += runs;                  // NB ke number wale runs batsman ko milte hain (real cricket ki tarah)
+        if (runs === 4) striker.fours += 1;
+        if (runs === 6) striker.sixes += 1;
+        if (runs % 2 === 1) swapStrike(inn);        // taak runs par strike badal jata hai
+        save(); render();
+      } else if (type === 'b') {                   // BYE — legal ball, chuna hua number hi total bye runs hai
+        inn.extras.b += runs; inn.runs += runs;
+        striker.balls += 1;
+        bowler.balls += 1;
+        if (runs % 2 === 1) swapStrike(inn);
+        afterLegalBall(inn);
+      } else if (type === 'lb') {                  // LEG BYE — legal ball, chuna hua number hi total leg-bye runs hai
+        inn.extras.lb += runs; inn.runs += runs;
+        striker.balls += 1;
+        bowler.balls += 1;
+        if (runs % 2 === 1) swapStrike(inn);
+        afterLegalBall(inn);
+      }
+    }
 
-function wicket(){
-  if(!M || curInnings().completed) return;
-  pendingExtra = null; updateExtraButtonsUI();   // wicket dabate hi koi bhi pending NB/WD/B/LB selection cancel
-  snapshot();
-  const inn = curInnings();
-  const striker = inn.batsmen[inn.strikerIdx];
-  const bowler = inn.bowlers[inn.currentBowlerIdx];
+    function wicket() {
+      if (!M || curInnings().completed) return;
+      pendingExtra = null; updateExtraButtonsUI();   // wicket dabate hi koi bhi pending NB/WD/B/LB selection cancel
+      snapshot();
+      const inn = curInnings();
+      const striker = inn.batsmen[inn.strikerIdx];
+      const bowler = inn.bowlers[inn.currentBowlerIdx];
 
-  striker.out = true; striker.howOut = 'b ' + bowler.name;
-  inn.allBatsmen.push(striker);           // out hone wale ka record mehfooz karo
-  inn.wickets += 1;
-  bowler.balls += 1;
-  bowler.wickets += 1;
-  inn.legalBalls += 1;
+      striker.out = true; striker.howOut = 'b ' + bowler.name;
+      inn.allBatsmen.push(striker);           // out hone wale ka record mehfooz karo
+      inn.wickets += 1;
+      bowler.balls += 1;
+      bowler.wickets += 1;
+      inn.legalBalls += 1;
 
-  if(inn.wickets>=10){
-    inn.batsmen[inn.strikerIdx] = striker;   // last record rehne do
-    endInnings();
-    return;
-  }
+      if (inn.wickets >= 10) {
+        inn.batsmen[inn.strikerIdx] = striker;   // last record rehne do
+        endInnings();
+        return;
+      }
 
-  save(); render();     // pehle screen update kar do, naya naam baad me modal se aayega
-  askText('Naya Batsman', 'Batsman ka naam', 'Batsman '+(inn.allBatsmen.length+2), (name)=>{
-    inn.batsmen[inn.strikerIdx] = newBatsman(name || ('Batsman '+(inn.allBatsmen.length+2)));
-    afterLegalBall(inn);
-  });
-}
+      save(); render();     // pehle screen update kar do, naya naam baad me modal se aayega
+      askText('Naya Batsman', 'Batsman ka naam', 'Batsman ' + (inn.allBatsmen.length + 2), (name) => {
+        inn.batsmen[inn.strikerIdx] = newBatsman(name || ('Batsman ' + (inn.allBatsmen.length + 2)));
+        afterLegalBall(inn);
+      });
+    }
 
-function swapStrike(inn){
-  const t = inn.strikerIdx; inn.strikerIdx = inn.nonStrikerIdx; inn.nonStrikerIdx = t;
-}
+    function swapStrike(inn) {
+      const t = inn.strikerIdx; inn.strikerIdx = inn.nonStrikerIdx; inn.nonStrikerIdx = t;
+    }
 
-/* Manual SWAP button — agar dono batsman ka strike galti se ulta ho jaye to isse theek karo.
-   Ye sirf striker/non-striker badalta hai, koi run/ball/extra add nahi karta. */
-function swapNow(){
-  if(!M || curInnings().completed) return;
-  pendingExtra = null; updateExtraButtonsUI();   // agar koi NB/WD/B/LB select tha to cancel karo
-  snapshot();
-  swapStrike(curInnings());
-  save(); render();
-}
+    /* Manual SWAP button — agar dono batsman ka strike galti se ulta ho jaye to isse theek karo.
+       Ye sirf striker/non-striker badalta hai, koi run/ball/extra add nahi karta. */
+    function swapNow() {
+      if (!M || curInnings().completed) return;
+      pendingExtra = null; updateExtraButtonsUI();   // agar koi NB/WD/B/LB select tha to cancel karo
+      snapshot();
+      swapStrike(curInnings());
+      save(); render();
+    }
 
-function afterLegalBall(inn){
-  let overEnded = false;
-  if(inn.legalBalls % 6 === 0 && inn.legalBalls>0){
-    swapStrike(inn);                      // over khatam — end change
-    overEnded = true;
-  }
-  if(inn.legalBalls >= M.oversLimit*6){
-    endInnings();
-    return;
-  }
-  save(); render();
+    function afterLegalBall(inn) {
+      let overEnded = false;
+      if (inn.legalBalls % 6 === 0 && inn.legalBalls > 0) {
+        swapStrike(inn);                      // over khatam — end change
+        overEnded = true;
+      }
+      if (inn.legalBalls >= M.oversLimit * 6) {
+        endInnings();
+        return;
+      }
+      save(); render();
 
-  if(overEnded){
-    askConfirm('Over Khatam', 'Kya naya bowler set karna hai?', (yes)=>{
-      if(yes){
-        askText('Naya Bowler', 'Bowler ka naam', '', (bname)=>{
-          if(bname){
-            inn.bowlers.push(newBowler(bname));
-            inn.currentBowlerIdx = inn.bowlers.length-1;
-            save(); render();
+      if (overEnded) {
+        askConfirm('Over Khatam', 'Kya naya bowler set karna hai?', (yes) => {
+          if (yes) {
+            askText('Naya Bowler', 'Bowler ka naam', '', (bname) => {
+              if (bname) {
+                inn.bowlers.push(newBowler(bname));
+                inn.currentBowlerIdx = inn.bowlers.length - 1;
+                save(); render();
+              }
+            });
           }
         });
       }
-    });
-  }
-}
+    }
 
-function moreMenu(){
-  pendingExtra = null; updateExtraButtonsUI();
-  askChoice('Aur Options', [
-    {label:'🔁 Striker Swap Karo', value:'swap'},
-    {label:'🎯 Bowler Change Karo', value:'bowler'},
-    {label:'🏁 Innings Manually Khatam Karo', value:'end'}
-  ], (choice)=>{
-    if(choice==='swap'){
-      snapshot(); swapStrike(curInnings()); save(); render();
-    } else if(choice==='bowler'){
-      askText('Naya Bowler', 'Bowler ka naam', '', (bname)=>{
-        if(bname){
-          snapshot();
-          const inn = curInnings();
-          inn.bowlers.push(newBowler(bname));
-          inn.currentBowlerIdx = inn.bowlers.length-1;
-          save(); render();
+    function moreMenu() {
+      pendingExtra = null; updateExtraButtonsUI();
+      askChoice('Aur Options', [
+        { label: '🔁 Striker Swap Karo', value: 'swap' },
+        { label: '🎯 Bowler Change Karo', value: 'bowler' },
+        { label: '🏁 Innings Manually Khatam Karo', value: 'end' }
+      ], (choice) => {
+        if (choice === 'swap') {
+          snapshot(); swapStrike(curInnings()); save(); render();
+        } else if (choice === 'bowler') {
+          askText('Naya Bowler', 'Bowler ka naam', '', (bname) => {
+            if (bname) {
+              snapshot();
+              const inn = curInnings();
+              inn.bowlers.push(newBowler(bname));
+              inn.currentBowlerIdx = inn.bowlers.length - 1;
+              save(); render();
+            }
+          });
+        } else if (choice === 'end') {
+          askConfirm('Innings Khatam', 'Innings manually khatam karein?', (yes) => {
+            if (yes) { snapshot(); endInnings(); }
+          });
         }
       });
-    } else if(choice==='end'){
-      askConfirm('Innings Khatam', 'Innings manually khatam karein?', (yes)=>{
-        if(yes){ snapshot(); endInnings(); }
+    }
+
+    /* ---------- Innings / Match end ---------- */
+    function endInnings() {
+      const inn = curInnings();
+      inn.completed = true;
+      // dono current batsmen ko bhi record me daal do (scorecard complete rahe)
+      [inn.batsmen[inn.strikerIdx], inn.batsmen[inn.nonStrikerIdx]].forEach(b => {
+        if (b && !inn.allBatsmen.includes(b)) inn.allBatsmen.push(b);
+      });
+
+      if (M.currentInnings === 1) {
+        M.target = inn.runs + 1;
+      } else {
+        M.matchOver = true;
+        const r1 = M.innings1.runs, r2 = M.innings2.runs;
+        if (r2 >= M.target) { M.resultText = M.innings2.battingTeam + ' ne match jeet liya (chase mukammal)!'; }
+        else if (r2 > r1) { M.resultText = M.innings2.battingTeam + ' ne match jeet liya!'; }
+        else if (r1 > r2) { M.resultText = M.innings1.battingTeam + ' ne match jeet liya!'; }
+        else { M.resultText = 'Match TIE ho gaya!'; }
+      }
+      save(); render();
+    }
+
+    function startSecondInnings() {
+      const inn1 = M.innings1;
+      askText('2nd Innings', inn1.bowlingTeam + ' ke opener batsman 1 ka naam', 'Batsman 1', (bat1) => {
+        askText('2nd Innings', inn1.bowlingTeam + ' ke opener batsman 2 ka naam', 'Batsman 2', (bat2) => {
+          askText('2nd Innings', inn1.battingTeam + ' ke bowler ka naam', 'Bowler', (bowler) => {
+            M.innings2 = newInnings(inn1.bowlingTeam, inn1.battingTeam, bat1 || 'Batsman 1', bat2 || 'Batsman 2', bowler || 'Bowler');
+            M.currentInnings = 2;
+            save(); render();
+          });
+        });
       });
     }
-  });
-}
 
-/* ---------- Innings / Match end ---------- */
-function endInnings(){
-  const inn = curInnings();
-  inn.completed = true;
-  // dono current batsmen ko bhi record me daal do (scorecard complete rahe)
-  [inn.batsmen[inn.strikerIdx], inn.batsmen[inn.nonStrikerIdx]].forEach(b=>{
-    if(b && !inn.allBatsmen.includes(b)) inn.allBatsmen.push(b);
-  });
+    /* ---------- Pages (tabs) ---------- */
+    function showPage(page) {
+      document.getElementById('pageLive').classList.toggle('hidden', page !== 'live');
+      document.getElementById('pageScorecard').classList.toggle('hidden', page !== 'scorecard');
+      document.getElementById('tabLive').classList.toggle('active', page === 'live');
+      document.getElementById('tabScorecard').classList.toggle('active', page === 'scorecard');
+      if (page === 'scorecard') renderScorecard();
+    }
 
-  if(M.currentInnings===1){
-    M.target = inn.runs + 1;
-  } else {
-    M.matchOver = true;
-    const r1 = M.innings1.runs, r2 = M.innings2.runs;
-    if(r2>=M.target){ M.resultText = M.innings2.battingTeam + ' ne match jeet liya (chase mukammal)!'; }
-    else if(r2>r1){ M.resultText = M.innings2.battingTeam + ' ne match jeet liya!'; }
-    else if(r1>r2){ M.resultText = M.innings1.battingTeam + ' ne match jeet liya!'; }
-    else { M.resultText = 'Match TIE ho gaya!'; }
-  }
-  save(); render();
-}
+    /* ---------- RENDER: top overlay bar ---------- */
+    function renderTopBarDefault() {
+      document.getElementById('battingTeam').textContent = 'TEAM A';
+      document.getElementById('scoreCombo').textContent = '0/0 (0.0 ov)';
+      document.getElementById('batLine1').textContent = '-';
+      document.getElementById('batLine2').textContent = '-';
+      document.getElementById('crrInfo').textContent = 'CRR 0.00';
+      document.getElementById('bowlInfo').textContent = '-';
+    }
 
-function startSecondInnings(){
-  const inn1 = M.innings1;
-  askText('2nd Innings', inn1.bowlingTeam + ' ke opener batsman 1 ka naam', 'Batsman 1', (bat1)=>{
-    askText('2nd Innings', inn1.bowlingTeam + ' ke opener batsman 2 ka naam', 'Batsman 2', (bat2)=>{
-      askText('2nd Innings', inn1.battingTeam + ' ke bowler ka naam', 'Bowler', (bowler)=>{
-        M.innings2 = newInnings(inn1.bowlingTeam, inn1.battingTeam, bat1||'Batsman 1', bat2||'Batsman 2', bowler||'Bowler');
-        M.currentInnings = 2;
-        save(); render();
-      });
-    });
-  });
-}
+    function renderTopBar() {
+      if (!M) { renderTopBarDefault(); return; }
+      const inn = curInnings();
+      // sirf batting team ka naam — usi line me score, dono batsman (upar/neechay), run-rate, bowler
+      document.getElementById('battingTeam').textContent = inn.battingTeam;
+      document.getElementById('scoreCombo').textContent = inn.runs + '/' + inn.wickets + ' (' + oversStr(inn.legalBalls) + ' ov)';
+      const striker = inn.batsmen[inn.strikerIdx];
+      const nonStriker = inn.batsmen[inn.nonStrikerIdx];
+      document.getElementById('batLine1').textContent = '🔴 ' + striker.name + ' ' + striker.runs + '(' + striker.balls + ')';
+      document.getElementById('batLine2').textContent = nonStriker.name + ' ' + nonStriker.runs + '(' + nonStriker.balls + ')';
+      const overFloat = inn.legalBalls / 6;
+      document.getElementById('crrInfo').textContent = 'CRR ' + (overFloat > 0 ? fmt(inn.runs / overFloat) : '0.00');
+      const bowler = inn.bowlers[inn.currentBowlerIdx];
+      document.getElementById('bowlInfo').textContent = bowler.name + ' ' + bowler.wickets + '/' + bowler.runs + ' (' + oversStr(bowler.balls) + ')';
+    }
 
-/* ---------- Pages (tabs) ---------- */
-function showPage(page){
-  document.getElementById('pageLive').classList.toggle('hidden', page!=='live');
-  document.getElementById('pageScorecard').classList.toggle('hidden', page!=='scorecard');
-  document.getElementById('tabLive').classList.toggle('active', page==='live');
-  document.getElementById('tabScorecard').classList.toggle('active', page==='scorecard');
-  if(page==='scorecard') renderScorecard();
-}
+    /* ---------- RENDER: live control panel ---------- */
+    function render() {
+      renderTopBar();
+      if (!M) return;
 
-/* ---------- RENDER: top overlay bar ---------- */
-function renderTopBarDefault(){
-  document.getElementById('battingTeam').textContent='TEAM A';
-  document.getElementById('scoreCombo').textContent='0/0 (0.0 ov)';
-  document.getElementById('batLine1').textContent='-';
-  document.getElementById('batLine2').textContent='-';
-  document.getElementById('crrInfo').textContent='CRR 0.00';
-  document.getElementById('bowlInfo').textContent='-';
-}
+      const inn = curInnings();
+      document.getElementById('nameBat1').textContent = inn.batsmen[0].name;
+      document.getElementById('nameBat2').textContent = inn.batsmen[1].name;
+      document.getElementById('statBat1').textContent = inn.batsmen[0].runs + '(' + inn.batsmen[0].balls + ')';
+      document.getElementById('statBat2').textContent = inn.batsmen[1].runs + '(' + inn.batsmen[1].balls + ')';
+      document.getElementById('dot1').classList.toggle('on', inn.strikerIdx === 0);
+      document.getElementById('dot2').classList.toggle('on', inn.strikerIdx === 1);
 
-function renderTopBar(){
-  if(!M){ renderTopBarDefault(); return; }
-  const inn = curInnings();
-  // sirf batting team ka naam — usi line me score, dono batsman (upar/neechay), run-rate, bowler
-  document.getElementById('battingTeam').textContent = inn.battingTeam;
-  document.getElementById('scoreCombo').textContent = inn.runs + '/' + inn.wickets + ' (' + oversStr(inn.legalBalls) + ' ov)';
-  const striker = inn.batsmen[inn.strikerIdx];
-  const nonStriker = inn.batsmen[inn.nonStrikerIdx];
-  document.getElementById('batLine1').textContent = '🔴 ' + striker.name + ' ' + striker.runs + '(' + striker.balls + ')';
-  document.getElementById('batLine2').textContent = nonStriker.name + ' ' + nonStriker.runs + '(' + nonStriker.balls + ')';
-  const overFloat = inn.legalBalls/6;
-  document.getElementById('crrInfo').textContent = 'CRR ' + (overFloat>0 ? fmt(inn.runs/overFloat) : '0.00');
-  const bowler = inn.bowlers[inn.currentBowlerIdx];
-  document.getElementById('bowlInfo').textContent = bowler.name + ' ' + bowler.wickets + '/' + bowler.runs + ' (' + oversStr(bowler.balls) + ')';
-}
+      const bowler = inn.bowlers[inn.currentBowlerIdx];
+      document.getElementById('bowlerName').textContent = bowler.name;
+      document.getElementById('statBowler').textContent = bowler.wickets + '/' + bowler.runs + ' (' + oversStr(bowler.balls) + ')';
 
-/* ---------- RENDER: live control panel ---------- */
-function render(){
-  renderTopBar();
-  if(!M) return;
+      document.getElementById('inningsLabel').textContent =
+        (M.currentInnings === 1 ? '1st Innings — ' : '2nd Innings — ') + inn.battingTeam + ' batting';
 
-  const inn = curInnings();
-  document.getElementById('nameBat1').textContent = inn.batsmen[0].name;
-  document.getElementById('nameBat2').textContent = inn.batsmen[1].name;
-  document.getElementById('statBat1').textContent = inn.batsmen[0].runs + '(' + inn.batsmen[0].balls + ')';
-  document.getElementById('statBat2').textContent = inn.batsmen[1].runs + '(' + inn.batsmen[1].balls + ')';
-  document.getElementById('dot1').classList.toggle('on', inn.strikerIdx===0);
-  document.getElementById('dot2').classList.toggle('on', inn.strikerIdx===1);
+      const totalExtras = inn.extras.wd + inn.extras.nb + inn.extras.b + inn.extras.lb;
+      document.getElementById('valExtras').textContent = totalExtras;
+      const overFloat = inn.legalBalls / 6;
+      document.getElementById('valCRR').textContent = overFloat > 0 ? fmt(inn.runs / overFloat) : '0.00';
 
-  const bowler = inn.bowlers[inn.currentBowlerIdx];
-  document.getElementById('bowlerName').textContent = bowler.name;
-  document.getElementById('statBowler').textContent = bowler.wickets + '/' + bowler.runs + ' (' + oversStr(bowler.balls) + ')';
+      if (M.currentInnings === 2 && M.target) {
+        const ballsLeft = M.oversLimit * 6 - inn.legalBalls;
+        const runsNeeded = M.target - inn.runs;
+        const rrr = ballsLeft > 0 ? (runsNeeded / (ballsLeft / 6)) : 0;
+        document.getElementById('valRRR').textContent = runsNeeded > 0 ? fmt(rrr) : '0.00';
+      } else {
+        document.getElementById('valRRR').textContent = '-';
+      }
 
-  document.getElementById('inningsLabel').textContent =
-    (M.currentInnings===1 ? '1st Innings — ' : '2nd Innings — ') + inn.battingTeam + ' batting';
+      const statusEl = document.getElementById('inningsStatus');
+      if (M.matchOver) {
+        statusEl.innerHTML = '<b>' + M.resultText + '</b>';
+      } else if (inn.completed) {
+        statusEl.innerHTML = 'Innings complete (' + inn.runs + '/' + inn.wickets + '). ' +
+          '<button class="fullbtn" style="margin-top:8px" onclick="startSecondInnings()">2nd Innings Shuru Karo</button>';
+      } else if (M.currentInnings === 2) {
+        statusEl.textContent = 'Target: ' + M.target;
+      } else {
+        statusEl.textContent = '';
+      }
+    }
 
-  const totalExtras = inn.extras.wd+inn.extras.nb+inn.extras.b+inn.extras.lb;
-  document.getElementById('valExtras').textContent = totalExtras;
-  const overFloat = inn.legalBalls/6;
-  document.getElementById('valCRR').textContent = overFloat>0 ? fmt(inn.runs/overFloat) : '0.00';
+    /* ---------- RENDER: full scorecard page ---------- */
+    function battingTable(inn) {
+      let allBat = inn.allBatsmen.slice();
+      // jo abhi crease par hain unko bhi dikhana hai (agar already list me nahi hain)
+      [inn.batsmen[0], inn.batsmen[1]].forEach(b => { if (!allBat.includes(b)) allBat.push(b); });
+      let rows = allBat.map(b => {
+        const sr = b.balls > 0 ? fmt((b.runs / b.balls) * 100) : '0.00';
+        const status = b.out ? b.howOut : 'Not Out';
+        return '<tr><td>' + b.name + '</td><td>' + status + '</td><td>' + b.runs + '</td><td>' + b.balls + '</td><td>' + b.fours + '</td><td>' + b.sixes + '</td><td>' + sr + '</td></tr>';
+      }).join('');
+      return '<table><tr><th>Batsman</th><th>Status</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr>' + rows + '</table>';
+    }
+    function bowlingTable(inn) {
+      let rows = inn.bowlers.map(b => {
+        const overFloat = b.balls / 6;
+        const eco = overFloat > 0 ? fmt(b.runs / overFloat) : '0.00';
+        return '<tr><td>' + b.name + '</td><td>' + oversStr(b.balls) + '</td><td>' + b.runs + '</td><td>' + b.wickets + '</td><td>' + eco + '</td></tr>';
+      }).join('');
+      return '<table><tr><th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Econ</th></tr>' + rows + '</table>';
+    }
 
-  if(M.currentInnings===2 && M.target){
-    const ballsLeft = M.oversLimit*6 - inn.legalBalls;
-    const runsNeeded = M.target - inn.runs;
-    const rrr = ballsLeft>0 ? (runsNeeded/(ballsLeft/6)) : 0;
-    document.getElementById('valRRR').textContent = runsNeeded>0 ? fmt(rrr) : '0.00';
-  } else {
-    document.getElementById('valRRR').textContent = '-';
-  }
+    function renderScorecard() {
+      const box = document.getElementById('scorecardContent');
+      if (!M) { box.innerHTML = '<div class="panel">Abhi match shuru nahi hua.</div>'; return; }
+      let html = '';
+      if (M.matchOver) { html += '<div class="resultBox">' + M.resultText + '</div>'; }
 
-  const statusEl = document.getElementById('inningsStatus');
-  if(M.matchOver){
-    statusEl.innerHTML = '<b>' + M.resultText + '</b>';
-  } else if(inn.completed){
-    statusEl.innerHTML = 'Innings complete (' + inn.runs + '/' + inn.wickets + '). ' +
-      '<button class="fullbtn" style="margin-top:8px" onclick="startSecondInnings()">2nd Innings Shuru Karo</button>';
-  } else if(M.currentInnings===2){
-    statusEl.textContent = 'Target: ' + M.target;
-  } else {
-    statusEl.textContent = '';
-  }
-}
+      html += '<div class="inningsTitle">1st Innings — ' + M.innings1.battingTeam + ' (' + M.innings1.runs + '/' + M.innings1.wickets + ', ' + oversStr(M.innings1.legalBalls) + ' ov)</div>';
+      html += battingTable(M.innings1);
+      html += bowlingTable(M.innings1);
+      html += '<div class="small">Extras: WD ' + M.innings1.extras.wd + ' • NB ' + M.innings1.extras.nb + ' • B ' + M.innings1.extras.b + ' • LB ' + M.innings1.extras.lb + '</div>';
 
-/* ---------- RENDER: full scorecard page ---------- */
-function battingTable(inn){
-  let allBat = inn.allBatsmen.slice();
-  // jo abhi crease par hain unko bhi dikhana hai (agar already list me nahi hain)
-  [inn.batsmen[0], inn.batsmen[1]].forEach(b=>{ if(!allBat.includes(b)) allBat.push(b); });
-  let rows = allBat.map(b=>{
-    const sr = b.balls>0 ? fmt((b.runs/b.balls)*100) : '0.00';
-    const status = b.out ? b.howOut : 'Not Out';
-    return '<tr><td>'+b.name+'</td><td>'+status+'</td><td>'+b.runs+'</td><td>'+b.balls+'</td><td>'+b.fours+'</td><td>'+b.sixes+'</td><td>'+sr+'</td></tr>';
-  }).join('');
-  return '<table><tr><th>Batsman</th><th>Status</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr>'+rows+'</table>';
-}
-function bowlingTable(inn){
-  let rows = inn.bowlers.map(b=>{
-    const overFloat = b.balls/6;
-    const eco = overFloat>0 ? fmt(b.runs/overFloat) : '0.00';
-    return '<tr><td>'+b.name+'</td><td>'+oversStr(b.balls)+'</td><td>'+b.runs+'</td><td>'+b.wickets+'</td><td>'+eco+'</td></tr>';
-  }).join('');
-  return '<table><tr><th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Econ</th></tr>'+rows+'</table>';
-}
+      if (M.innings2) {
+        html += '<div class="inningsTitle">2nd Innings — ' + M.innings2.battingTeam + ' (' + M.innings2.runs + '/' + M.innings2.wickets + ', ' + oversStr(M.innings2.legalBalls) + ' ov)</div>';
+        html += battingTable(M.innings2);
+        html += bowlingTable(M.innings2);
+        html += '<div class="small">Extras: WD ' + M.innings2.extras.wd + ' • NB ' + M.innings2.extras.nb + ' • B ' + M.innings2.extras.b + ' • LB ' + M.innings2.extras.lb + '</div>';
+      }
+      box.innerHTML = html;
+    }
 
-function renderScorecard(){
-  const box = document.getElementById('scorecardContent');
-  if(!M){ box.innerHTML = '<div class="panel">Abhi match shuru nahi hua.</div>'; return; }
-  let html = '';
-  if(M.matchOver){ html += '<div class="resultBox">'+M.resultText+'</div>'; }
-
-  html += '<div class="inningsTitle">1st Innings — '+M.innings1.battingTeam+' ('+M.innings1.runs+'/'+M.innings1.wickets+', '+oversStr(M.innings1.legalBalls)+' ov)</div>';
-  html += battingTable(M.innings1);
-  html += bowlingTable(M.innings1);
-  html += '<div class="small">Extras: WD '+M.innings1.extras.wd+' • NB '+M.innings1.extras.nb+' • B '+M.innings1.extras.b+' • LB '+M.innings1.extras.lb+'</div>';
-
-  if(M.innings2){
-    html += '<div class="inningsTitle">2nd Innings — '+M.innings2.battingTeam+' ('+M.innings2.runs+'/'+M.innings2.wickets+', '+oversStr(M.innings2.legalBalls)+' ov)</div>';
-    html += battingTable(M.innings2);
-    html += bowlingTable(M.innings2);
-    html += '<div class="small">Extras: WD '+M.innings2.extras.wd+' • NB '+M.innings2.extras.nb+' • B '+M.innings2.extras.b+' • LB '+M.innings2.extras.lb+'</div>';
-  }
-  box.innerHTML = html;
-}
-
-/* ---------- Startup ---------- */
-(function init(){
-  updateExtraButtonsUI();
-  M = load();
-  if(M){
-    document.getElementById('setupBox').classList.add('hidden');
-    document.getElementById('liveBox').classList.remove('hidden');
-    render();
-  } else {
-    renderTopBarDefault();
-  }
-  // OBS overlay mode: URL me ?overlay=1 dene se sirf top bar dikhega, control app chup jayega
-  const q = new URLSearchParams(location.search);
-  if(q.get('overlay')==='1'){ document.getElementById('appSection').style.display='none'; }
-})();
-</script>
+    /* ---------- Startup ---------- */
+    (function init() {
+      updateExtraButtonsUI();
+      M = load();
+      if (M) {
+        document.getElementById('setupBox').classList.add('hidden');
+        document.getElementById('liveBox').classList.remove('hidden');
+        render();
+      } else {
+        renderTopBarDefault();
+      }
+      // OBS overlay mode: URL me ?overlay=1 dene se sirf top bar dikhega, control app chup jayega
+      const q = new URLSearchParams(location.search);
+      if (q.get('overlay') === '1') { document.getElementById('appSection').style.display = 'none'; }
+    })();
+  </script>
 </body>
+
 </html>
