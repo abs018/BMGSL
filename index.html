@@ -78,9 +78,6 @@ th{background:var(--teal);color:#fff;font-size:12px}
 .modalButtons .primary{background:var(--teal);color:#fff}
 .modalButtons .secondary{background:#e2e6e8;color:#111}
 .modalOptionBtn{display:block;width:100%;padding:12px;margin-bottom:8px;border-radius:8px;border:1px solid #ccc;background:#f7f9fa;font-weight:700;cursor:pointer;text-align:left;font-size:14px}
-#syncStatus{text-align:center;font-size:12px;font-weight:800;margin:-6px 0 14px;padding:6px;border-radius:6px}
-#syncStatus.on{background:#e7f8ee;color:#1a7a3d}
-#syncStatus.off{background:#fff2e5;color:#a15c00}
 </style>
 </head>
 <body>
@@ -110,6 +107,637 @@ th{background:var(--teal);color:#fff;font-size:12px}
     <button id="tabScorecard" class="tabBtn" onclick="showPage('scorecard')">📋 Full Scorecard</button>
     <button class="tabBtn danger" onclick="newMatch()">New Match</button>
   </div>
+
+  <!-- ---- PAGE 1: LIVE CONTROL ---- -->
+  <div id="pageLive">
+
+    <!-- Match setup form -->
+    <div class="panel" id="setupBox">
+      <h3>Match Setup</h3>
+      <div class="grid2">
+        <input id="setTeamA" placeholder="Team A ka naam">
+        <input id="setTeamB" placeholder="Team B ka naam">
+        <input id="setOvers" placeholder="Total overs (e.g. 20)" type="number">
+        <input id="setBat1" placeholder="Batsman 1 ka naam">
+        <input id="setBat2" placeholder="Batsman 2 ka naam">
+        <input id="setBowler" placeholder="Bowler ka naam">
+      </div>
+      <button class="fullbtn" onclick="startMatch()">Match Shuru Karo</button>
+      <div class="small">Ye ek dafa fill karo — uske baad neeche wale buttons se poora match manually control hoga.</div>
+    </div>
+
+    <!-- Live scoring panel (jab tak match start nahi hota, hidden rehta hai) -->
+    <div class="panel hidden" id="liveBox">
+      <div class="bbHeader"><span>BATSMAN</span><span>BOWLER</span></div>
+      <div class="bbRow">
+        <div class="batName"><span class="dot" id="dot1"></span><span id="nameBat1">-</span></div>
+        <div class="bowlerName" id="bowlerName">-</div>
+      </div>
+      <div class="bbRow">
+        <div class="statSmall" id="statBat1">0(0)</div>
+        <div class="statSmall" id="statBowler">0/0 (0.0)</div>
+      </div>
+      <div class="bbRow">
+        <div class="batName"><span class="dot" id="dot2"></span><span id="nameBat2">-</span></div>
+        <div></div>
+      </div>
+      <div class="bbRow">
+        <div class="statSmall" id="statBat2">0(0)</div>
+        <div></div>
+      </div>
+
+      <div class="inningsBar" id="inningsLabel">1st Innings</div>
+
+      <div class="strip">
+        <div class="box" style="background:var(--teal)"><span class="lab">EXTRAS</span><span id="valExtras">0</span></div>
+        <div class="box" style="background:var(--teal)"><span class="lab">CRR</span><span id="valCRR">0.00</span></div>
+        <div class="box" style="background:var(--teal)"><span class="lab">RRR</span><span id="valRRR">-</span></div>
+      </div>
+
+      <div class="pad">
+        <div class="padBtn" onclick="ballRun(1)">1</div>
+        <div class="padBtn" onclick="ballRun(2)">2</div>
+        <div class="padBtn" onclick="ballRun(3)">3</div>
+        <div class="padBtn teal" onclick="ballRun(4)">4</div>
+        <div class="padBtn" onclick="ballRun(5)">5</div>
+
+        <div class="padBtn teal" onclick="ballRun(6)">6</div>
+        <div class="padBtn blue" style="font-size:12px;line-height:1.1;flex-direction:column;gap:1px" onclick="swapNow()" title="Batsman ka strike manually swap karo">⇄<br>SWAP</div>
+        <div class="padBtn red" onclick="wicket()">W</div>
+        <div class="padBtn" onclick="ballRun(0)">0</div>
+        <div class="padBtn blue" onclick="moreMenu()">...</div>
+
+        <div class="padBtn green" id="extraBtnNb" onclick="extraBall('nb')">NB</div>
+        <div class="padBtn" id="extraBtnLb" onclick="extraBall('lb')">LB</div>
+        <div class="padBtn" id="extraBtnB" onclick="extraBall('b')">B</div>
+        <div class="padBtn teal" id="extraBtnWd" onclick="extraBall('wd')">WD</div>
+        <div class="padBtn" onclick="undo()">UNDO</div>
+      </div>
+
+      <div id="extraIndicator"></div>
+      <div class="small" id="inningsStatus"></div>
+    </div>
+  </div>
+
+  <!-- ---- PAGE 2: FULL SCORECARD ---- -->
+  <div id="pageScorecard" class="hidden">
+    <div id="scorecardContent"><div class="panel">Abhi match shuru nahi hua.</div></div>
+  </div>
+
+</div>
+
+<!-- Apna Modal Popup (New Match / naya batsman / naya bowler waghera sab isi se poochte hain) -->
+<div class="modalOverlay hidden" id="modalOverlay">
+  <div class="modalBox">
+    <div class="modalTitle" id="modalTitle"></div>
+    <div id="modalBody"></div>
+    <div class="modalButtons" id="modalButtons"></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   BMGSL SCORER — poori Roman Urdu comments ke sath
+   Simple, ek hi file, koi extra framework nahi — sirf plain JS + localStorage
+   ===================================================================== */
+
+const STORAGE_KEY = 'bmgsl_match_v1';
+let M = null;          // current match state (poora data isi object me hai)
+let undoStack = [];    // undo ke liye purani states yahan save hoti hain
+let pendingExtra = null;   // NB/WD/B/LB "select" mode — jab tak koi ek set hai, agla number usi extra me add hoga
+
+const EXTRA_LABELS = {nb:'NO BALL', wd:'WIDE', b:'BYE', lb:'LEG BYE'};
+const EXTRA_BTN_IDS = {nb:'extraBtnNb', wd:'extraBtnWd', b:'extraBtnB', lb:'extraBtnLb'};
+
+function updateExtraButtonsUI(){
+  Object.keys(EXTRA_BTN_IDS).forEach(k=>{
+    const el = document.getElementById(EXTRA_BTN_IDS[k]);
+    if(el) el.classList.toggle('selected', pendingExtra===k);
+  });
+  const ind = document.getElementById('extraIndicator');
+  if(ind) ind.textContent = pendingExtra ? (EXTRA_LABELS[pendingExtra] + ' selected — ab run number dabao (0,1,2,3,4,6)') : '';
+}
+
+/* ---------- Helpers ---------- */
+function oversStr(balls){                 // legal balls ko "overs.balls" format me dikhana
+  return Math.floor(balls/6) + '.' + (balls%6);
+}
+function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
+
+function newBatsman(name){
+  return {name: name||'Batsman', runs:0, balls:0, fours:0, sixes:0, out:false, howOut:''};
+}
+function newBowler(name){
+  return {name: name||'Bowler', balls:0, runs:0, wickets:0};
+}
+/* Agar bowler ka naam pehle se innings me maujood hai to usi ka record continue karo,
+   warna naya bowler banao. Isse ek bowler ka pura match ka data (runs/wickets/overs)
+   uske naam ke against jama hota rehta hai, spell dar spell reset nahi hota. */
+function setCurrentBowlerByName(inn, name){
+  const trimmed = (name||'').trim();
+  if(!trimmed){
+    inn.bowlers.push(newBowler(name));
+    inn.currentBowlerIdx = inn.bowlers.length-1;
+    return;
+  }
+  const existingIdx = inn.bowlers.findIndex(b => (b.name||'').trim().toLowerCase() === trimmed.toLowerCase());
+  if(existingIdx >= 0){
+    inn.currentBowlerIdx = existingIdx;
+  } else {
+    inn.bowlers.push(newBowler(trimmed));
+    inn.currentBowlerIdx = inn.bowlers.length-1;
+  }
+}
+function newInnings(battingTeam, bowlingTeam, bat1, bat2, bowlerName){
+  return {
+    battingTeam, bowlingTeam,
+    runs:0, wickets:0, legalBalls:0,
+    extras:{wd:0,nb:0,b:0,lb:0},
+    batsmen:[ newBatsman(bat1), newBatsman(bat2) ],
+    strikerIdx:0, nonStrikerIdx:1,
+    bowlers:[ newBowler(bowlerName) ],
+    currentBowlerIdx:0,
+    completed:false,
+    allBatsmen:[]   // sab players (jo out ho chuke) ka poora record — scorecard ke liye
+  };
+}
+
+/* ---------- Save / Load ---------- */
+function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(M)); }catch(e){} }
+function load(){
+  try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+function snapshot(){                       // undo ke liye current state ki copy rakho
+  undoStack.push(JSON.stringify(M));
+  if(undoStack.length>60) undoStack.shift();
+}
+function undo(){
+  pendingExtra = null; updateExtraButtonsUI();   // undo se pehle koi bhi pending selection cancel
+  if(undoStack.length===0) return;         // kuch bhi undo karne ko nahi — chup chaap ignore karo
+  M = JSON.parse(undoStack.pop());
+  save(); render();
+}
+
+/* =====================================================================
+   APNA KHUD KA MODAL SYSTEM
+   Browser ka confirm()/prompt() Claude ke andar (iframe) kabhi kabhi
+   block ho jata hai is liye buttons kaam nahi karte — isi wajah se
+   apna khud ka chhota popup bana liya jo hamesha reliably kaam karega.
+   ===================================================================== */
+function closeModal(){ document.getElementById('modalOverlay').classList.add('hidden'); }
+
+function askText(title, placeholder, defVal, onOk){
+  const ov = document.getElementById('modalOverlay');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML =
+    '<input type="text" id="modalInputField" class="modalInput" placeholder="'+placeholder+'">';
+  document.getElementById('modalInputField').value = defVal || '';
+  const btns = document.getElementById('modalButtons'); btns.innerHTML='';
+  const cancelBtn=document.createElement('button'); cancelBtn.className='secondary'; cancelBtn.textContent='Cancel';
+  cancelBtn.onclick=closeModal;
+  const okBtn=document.createElement('button'); okBtn.className='primary'; okBtn.textContent='OK';
+  okBtn.onclick=()=>{ const v=document.getElementById('modalInputField').value.trim(); closeModal(); onOk(v); };
+  btns.appendChild(cancelBtn); btns.appendChild(okBtn);
+  ov.classList.remove('hidden');
+  setTimeout(()=>{ const f=document.getElementById('modalInputField'); if(f) f.focus(); },50);
+}
+
+function askConfirm(title, message, onResult){
+  const ov = document.getElementById('modalOverlay');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = '<div>'+message+'</div>';
+  const btns = document.getElementById('modalButtons'); btns.innerHTML='';
+  const noBtn=document.createElement('button'); noBtn.className='secondary'; noBtn.textContent='Nahi';
+  noBtn.onclick=()=>{ closeModal(); onResult(false); };
+  const yesBtn=document.createElement('button'); yesBtn.className='primary'; yesBtn.textContent='Haan';
+  yesBtn.onclick=()=>{ closeModal(); onResult(true); };
+  btns.appendChild(noBtn); btns.appendChild(yesBtn);
+  ov.classList.remove('hidden');
+}
+
+function askChoice(title, options, onPick){        // options: [{label, value}]
+  const ov = document.getElementById('modalOverlay');
+  document.getElementById('modalTitle').textContent = title;
+  const body = document.getElementById('modalBody'); body.innerHTML='';
+  options.forEach(opt=>{
+    const b=document.createElement('button');
+    b.className='modalOptionBtn'; b.textContent=opt.label;
+    b.onclick=()=>{ closeModal(); onPick(opt.value); };
+    body.appendChild(b);
+  });
+  const btns = document.getElementById('modalButtons'); btns.innerHTML='';
+  const cancelBtn=document.createElement('button'); cancelBtn.className='secondary'; cancelBtn.style.flex='1';
+  cancelBtn.textContent='Cancel'; cancelBtn.onclick=closeModal;
+  btns.appendChild(cancelBtn);
+  ov.classList.remove('hidden');
+}
+
+/* ---------- New Match ---------- */
+function resetMatchState(){
+  localStorage.removeItem(STORAGE_KEY);
+  undoStack = [];
+  M = null;
+  pendingExtra = null;
+  document.getElementById('setupBox').classList.remove('hidden');
+  document.getElementById('liveBox').classList.add('hidden');
+  document.getElementById('setTeamA').value='';
+  document.getElementById('setTeamB').value='';
+  document.getElementById('setOvers').value='';
+  document.getElementById('setBat1').value='';
+  document.getElementById('setBat2').value='';
+  document.getElementById('setBowler').value='';
+  showPage('live');
+  renderTopBarDefault();
+}
+function newMatch(){
+  if(M && !M.matchOver){
+    askConfirm('New Match', 'Naya match shuru karne se purana chal raha match delete ho jayega. Pakka?', (yes)=>{
+      if(yes) resetMatchState();
+    });
+  } else {
+    resetMatchState();               // koi match chal hi nahi raha (ya khatam ho chuka) — seedha reset karo
+  }
+}
+
+function startMatch(){
+  const teamA = document.getElementById('setTeamA').value.trim() || 'Team A';
+  const teamB = document.getElementById('setTeamB').value.trim() || 'Team B';
+  const overs = parseInt(document.getElementById('setOvers').value) || 20;
+  const bat1 = document.getElementById('setBat1').value.trim() || 'Batsman 1';
+  const bat2 = document.getElementById('setBat2').value.trim() || 'Batsman 2';
+  const bowler = document.getElementById('setBowler').value.trim() || 'Bowler';
+
+  M = {
+    teamA, teamB, oversLimit: overs,
+    currentInnings: 1,
+    target: null,
+    innings1: newInnings(teamA, teamB, bat1, bat2, bowler),
+    innings2: null,
+    matchOver:false, resultText:''
+  };
+  save();
+  document.getElementById('setupBox').classList.add('hidden');
+  document.getElementById('liveBox').classList.remove('hidden');
+  render();
+}
+
+/* ---------- Current innings helper ---------- */
+function curInnings(){ return M.currentInnings===1 ? M.innings1 : M.innings2; }
+
+/* ---------- Core scoring actions ---------- */
+function ballRun(runs){
+  if(!M || curInnings().completed) return;
+
+  // agar koi NB/WD/B/LB "select" mode me hai, to ye number usi extra ke sath add hoga
+  if(pendingExtra){
+    applyExtra(pendingExtra, runs);
+    return;
+  }
+
+  snapshot();
+  const inn = curInnings();
+  const striker = inn.batsmen[inn.strikerIdx];
+  const bowler  = inn.bowlers[inn.currentBowlerIdx];
+
+  striker.runs += runs; striker.balls += 1;
+  if(runs===4) striker.fours+=1;
+  if(runs===6) striker.sixes+=1;
+
+  inn.runs += runs;
+  inn.legalBalls += 1;
+
+  bowler.runs += runs; bowler.balls += 1;
+
+  if(runs%2===1) swapStrike(inn);         // taak runs par strike change
+
+  afterLegalBall(inn);
+}
+
+/* NB/WD/B/LB button dabane par pehle sirf "select" hota hai (highlight ho jata hai).
+   Dobara usi button ko dabao to selection cancel ho jati hai.
+   Uske baad jo bhi number button (0,1,2,3,4,6...) dabaoge, wahi extra ke sath add ho jayega
+   (jaise NB + 4 = total 5 runs; WD + 1 = total 2 runs; B/LB + 2 = 2 byes/leg-byes). */
+function extraBall(type){
+  if(!M || curInnings().completed) return;
+
+  if(pendingExtra===type){                // dobara wahi button — selection cancel
+    pendingExtra = null;
+    updateExtraButtonsUI();
+    return;
+  }
+
+  pendingExtra = type;                     // select mode on — ab number ka wait
+  updateExtraButtonsUI();
+}
+
+/* Extra ko chuna hua number ke sath apply karta hai */
+function applyExtra(type, runs){
+  pendingExtra = null;
+  updateExtraButtonsUI();
+
+  snapshot();
+  const inn = curInnings();
+  const striker = inn.batsmen[inn.strikerIdx];
+  const bowler = inn.bowlers[inn.currentBowlerIdx];
+
+  if(type==='wd'){                         // WIDE — 1 (extra) + chuna hua number; ball count nahi hoti
+    const total = 1 + runs;
+    inn.extras.wd += total; inn.runs += total; bowler.runs += total;
+    if(runs%2===1) swapStrike(inn);        // dauray hue runs taak hon to strike badle
+    save(); render();
+  } else if(type==='nb'){                  // NO BALL — 1 penalty extra + jo runs bat se lage wo batsman ke khaate me
+    inn.extras.nb += 1; inn.runs += 1 + runs; bowler.runs += 1 + runs;
+    striker.runs += runs;                  // NB ke number wale runs batsman ko milte hain (real cricket ki tarah)
+    if(runs===4) striker.fours += 1;
+    if(runs===6) striker.sixes += 1;
+    if(runs%2===1) swapStrike(inn);        // taak runs par strike badal jata hai
+    save(); render();
+  } else if(type==='b'){                   // BYE — legal ball, chuna hua number hi total bye runs hai
+    inn.extras.b += runs; inn.runs += runs;
+    striker.balls += 1;
+    bowler.balls += 1;
+    if(runs%2===1) swapStrike(inn);
+    afterLegalBall(inn);
+  } else if(type==='lb'){                  // LEG BYE — legal ball, chuna hua number hi total leg-bye runs hai
+    inn.extras.lb += runs; inn.runs += runs;
+    striker.balls += 1;
+    bowler.balls += 1;
+    if(runs%2===1) swapStrike(inn);
+    afterLegalBall(inn);
+  }
+}
+
+function wicket(){
+  if(!M || curInnings().completed) return;
+  pendingExtra = null; updateExtraButtonsUI();   // wicket dabate hi koi bhi pending NB/WD/B/LB selection cancel
+  snapshot();
+  const inn = curInnings();
+  const striker = inn.batsmen[inn.strikerIdx];
+  const bowler = inn.bowlers[inn.currentBowlerIdx];
+
+  striker.out = true; striker.howOut = 'b ' + bowler.name;
+  inn.allBatsmen.push(striker);           // out hone wale ka record mehfooz karo
+  inn.wickets += 1;
+  bowler.balls += 1;
+  bowler.wickets += 1;
+  inn.legalBalls += 1;
+
+  if(inn.wickets>=10){
+    inn.batsmen[inn.strikerIdx] = striker;   // last record rehne do
+    endInnings();
+    return;
+  }
+
+  save(); render();     // pehle screen update kar do, naya naam baad me modal se aayega
+  askText('Naya Batsman', 'Batsman ka naam', 'Batsman '+(inn.allBatsmen.length+2), (name)=>{
+    inn.batsmen[inn.strikerIdx] = newBatsman(name || ('Batsman '+(inn.allBatsmen.length+2)));
+    afterLegalBall(inn);
+  });
+}
+
+function swapStrike(inn){
+  const t = inn.strikerIdx; inn.strikerIdx = inn.nonStrikerIdx; inn.nonStrikerIdx = t;
+}
+
+/* Manual SWAP button — agar dono batsman ka strike galti se ulta ho jaye to isse theek karo.
+   Ye sirf striker/non-striker badalta hai, koi run/ball/extra add nahi karta. */
+function swapNow(){
+  if(!M || curInnings().completed) return;
+  pendingExtra = null; updateExtraButtonsUI();   // agar koi NB/WD/B/LB select tha to cancel karo
+  snapshot();
+  swapStrike(curInnings());
+  save(); render();
+}
+
+function afterLegalBall(inn){
+  let overEnded = false;
+  if(inn.legalBalls % 6 === 0 && inn.legalBalls>0){
+    swapStrike(inn);                      // over khatam — end change
+    overEnded = true;
+  }
+  if(inn.legalBalls >= M.oversLimit*6){
+    endInnings();
+    return;
+  }
+  save(); render();
+
+  if(overEnded){
+    askConfirm('Over Khatam', 'Kya naya bowler set karna hai?', (yes)=>{
+      if(yes){
+        askText('Naya Bowler', 'Bowler ka naam (agar pehle bowl kar chuka hai to wahi purana naam likhein)', '', (bname)=>{
+          if(bname){
+            setCurrentBowlerByName(inn, bname);
+            save(); render();
+          }
+        });
+      }
+    });
+  }
+}
+
+function moreMenu(){
+  pendingExtra = null; updateExtraButtonsUI();
+  askChoice('Aur Options', [
+    {label:'🔁 Striker Swap Karo', value:'swap'},
+    {label:'🎯 Bowler Change Karo', value:'bowler'},
+    {label:'🏁 Innings Manually Khatam Karo', value:'end'}
+  ], (choice)=>{
+    if(choice==='swap'){
+      snapshot(); swapStrike(curInnings()); save(); render();
+    } else if(choice==='bowler'){
+      askText('Naya Bowler', 'Bowler ka naam (agar pehle bowl kar chuka hai to wahi purana naam likhein)', '', (bname)=>{
+        if(bname){
+          snapshot();
+          const inn = curInnings();
+          setCurrentBowlerByName(inn, bname);
+          save(); render();
+        }
+      });
+    } else if(choice==='end'){
+      askConfirm('Innings Khatam', 'Innings manually khatam karein?', (yes)=>{
+        if(yes){ snapshot(); endInnings(); }
+      });
+    }
+  });
+}
+
+/* ---------- Innings / Match end ---------- */
+function endInnings(){
+  const inn = curInnings();
+  inn.completed = true;
+  // dono current batsmen ko bhi record me daal do (scorecard complete rahe)
+  [inn.batsmen[inn.strikerIdx], inn.batsmen[inn.nonStrikerIdx]].forEach(b=>{
+    if(b && !inn.allBatsmen.includes(b)) inn.allBatsmen.push(b);
+  });
+
+  if(M.currentInnings===1){
+    M.target = inn.runs + 1;
+  } else {
+    M.matchOver = true;
+    const r1 = M.innings1.runs, r2 = M.innings2.runs;
+    if(r2>=M.target){ M.resultText = M.innings2.battingTeam + ' ne match jeet liya (chase mukammal)!'; }
+    else if(r2>r1){ M.resultText = M.innings2.battingTeam + ' ne match jeet liya!'; }
+    else if(r1>r2){ M.resultText = M.innings1.battingTeam + ' ne match jeet liya!'; }
+    else { M.resultText = 'Match TIE ho gaya!'; }
+  }
+  save(); render();
+}
+
+function startSecondInnings(){
+  const inn1 = M.innings1;
+  askText('2nd Innings', inn1.bowlingTeam + ' ke opener batsman 1 ka naam', 'Batsman 1', (bat1)=>{
+    askText('2nd Innings', inn1.bowlingTeam + ' ke opener batsman 2 ka naam', 'Batsman 2', (bat2)=>{
+      askText('2nd Innings', inn1.battingTeam + ' ke bowler ka naam', 'Bowler', (bowler)=>{
+        M.innings2 = newInnings(inn1.bowlingTeam, inn1.battingTeam, bat1||'Batsman 1', bat2||'Batsman 2', bowler||'Bowler');
+        M.currentInnings = 2;
+        save(); render();
+      });
+    });
+  });
+}
+
+/* ---------- Pages (tabs) ---------- */
+function showPage(page){
+  document.getElementById('pageLive').classList.toggle('hidden', page!=='live');
+  document.getElementById('pageScorecard').classList.toggle('hidden', page!=='scorecard');
+  document.getElementById('tabLive').classList.toggle('active', page==='live');
+  document.getElementById('tabScorecard').classList.toggle('active', page==='scorecard');
+  if(page==='scorecard') renderScorecard();
+}
+
+/* ---------- RENDER: top overlay bar ---------- */
+function renderTopBarDefault(){
+  document.getElementById('battingTeam').textContent='TEAM A';
+  document.getElementById('scoreCombo').textContent='0/0 (0.0 ov)';
+  document.getElementById('batLine1').textContent='-';
+  document.getElementById('batLine2').textContent='-';
+  document.getElementById('crrInfo').textContent='CRR 0.00';
+  document.getElementById('bowlInfo').textContent='-';
+}
+
+function renderTopBar(){
+  if(!M){ renderTopBarDefault(); return; }
+  const inn = curInnings();
+  // sirf batting team ka naam — usi line me score, dono batsman (upar/neechay), run-rate, bowler
+  document.getElementById('battingTeam').textContent = inn.battingTeam;
+  document.getElementById('scoreCombo').textContent = inn.runs + '/' + inn.wickets + ' (' + oversStr(inn.legalBalls) + ' ov)';
+  const striker = inn.batsmen[inn.strikerIdx];
+  const nonStriker = inn.batsmen[inn.nonStrikerIdx];
+  document.getElementById('batLine1').textContent = '🔴 ' + striker.name + ' ' + striker.runs + '(' + striker.balls + ')';
+  document.getElementById('batLine2').textContent = nonStriker.name + ' ' + nonStriker.runs + '(' + nonStriker.balls + ')';
+  const overFloat = inn.legalBalls/6;
+  document.getElementById('crrInfo').textContent = 'CRR ' + (overFloat>0 ? fmt(inn.runs/overFloat) : '0.00');
+  const bowler = inn.bowlers[inn.currentBowlerIdx];
+  document.getElementById('bowlInfo').textContent = bowler.name + ' ' + bowler.wickets + '/' + bowler.runs + ' (' + oversStr(bowler.balls) + ')';
+}
+
+/* ---------- RENDER: live control panel ---------- */
+function render(){
+  renderTopBar();
+  if(!M) return;
+
+  const inn = curInnings();
+  document.getElementById('nameBat1').textContent = inn.batsmen[0].name;
+  document.getElementById('nameBat2').textContent = inn.batsmen[1].name;
+  document.getElementById('statBat1').textContent = inn.batsmen[0].runs + '(' + inn.batsmen[0].balls + ')';
+  document.getElementById('statBat2').textContent = inn.batsmen[1].runs + '(' + inn.batsmen[1].balls + ')';
+  document.getElementById('dot1').classList.toggle('on', inn.strikerIdx===0);
+  document.getElementById('dot2').classList.toggle('on', inn.strikerIdx===1);
+
+  const bowler = inn.bowlers[inn.currentBowlerIdx];
+  document.getElementById('bowlerName').textContent = bowler.name;
+  document.getElementById('statBowler').textContent = bowler.wickets + '/' + bowler.runs + ' (' + oversStr(bowler.balls) + ')';
+
+  document.getElementById('inningsLabel').textContent =
+    (M.currentInnings===1 ? '1st Innings — ' : '2nd Innings — ') + inn.battingTeam + ' batting';
+
+  const totalExtras = inn.extras.wd+inn.extras.nb+inn.extras.b+inn.extras.lb;
+  document.getElementById('valExtras').textContent = totalExtras;
+  const overFloat = inn.legalBalls/6;
+  document.getElementById('valCRR').textContent = overFloat>0 ? fmt(inn.runs/overFloat) : '0.00';
+
+  if(M.currentInnings===2 && M.target){
+    const ballsLeft = M.oversLimit*6 - inn.legalBalls;
+    const runsNeeded = M.target - inn.runs;
+    const rrr = ballsLeft>0 ? (runsNeeded/(ballsLeft/6)) : 0;
+    document.getElementById('valRRR').textContent = runsNeeded>0 ? fmt(rrr) : '0.00';
+  } else {
+    document.getElementById('valRRR').textContent = '-';
+  }
+
+  const statusEl = document.getElementById('inningsStatus');
+  if(M.matchOver){
+    statusEl.innerHTML = '<b>' + M.resultText + '</b>';
+  } else if(inn.completed){
+    statusEl.innerHTML = 'Innings complete (' + inn.runs + '/' + inn.wickets + '). ' +
+      '<button class="fullbtn" style="margin-top:8px" onclick="startSecondInnings()">2nd Innings Shuru Karo</button>';
+  } else if(M.currentInnings===2){
+    statusEl.textContent = 'Target: ' + M.target;
+  } else {
+    statusEl.textContent = '';
+  }
+}
+
+/* ---------- RENDER: full scorecard page ---------- */
+function battingTable(inn){
+  let allBat = inn.allBatsmen.slice();
+  // jo abhi crease par hain unko bhi dikhana hai (agar already list me nahi hain)
+  [inn.batsmen[0], inn.batsmen[1]].forEach(b=>{ if(!allBat.includes(b)) allBat.push(b); });
+  let rows = allBat.map(b=>{
+    const sr = b.balls>0 ? fmt((b.runs/b.balls)*100) : '0.00';
+    const status = b.out ? b.howOut : 'Not Out';
+    return '<tr><td>'+b.name+'</td><td>'+status+'</td><td>'+b.runs+'</td><td>'+b.balls+'</td><td>'+b.fours+'</td><td>'+b.sixes+'</td><td>'+sr+'</td></tr>';
+  }).join('');
+  return '<table><tr><th>Batsman</th><th>Status</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr>'+rows+'</table>';
+}
+function bowlingTable(inn){
+  let rows = inn.bowlers.map(b=>{
+    const overFloat = b.balls/6;
+    const eco = overFloat>0 ? fmt(b.runs/overFloat) : '0.00';
+    return '<tr><td>'+b.name+'</td><td>'+oversStr(b.balls)+'</td><td>'+b.runs+'</td><td>'+b.wickets+'</td><td>'+eco+'</td></tr>';
+  }).join('');
+  return '<table><tr><th>Bowler</th><th>O</th><th>R</th><th>W</th><th>Econ</th></tr>'+rows+'</table>';
+}
+
+function renderScorecard(){
+  const box = document.getElementById('scorecardContent');
+  if(!M){ box.innerHTML = '<div class="panel">Abhi match shuru nahi hua.</div>'; return; }
+  let html = '';
+  if(M.matchOver){ html += '<div class="resultBox">'+M.resultText+'</div>'; }
+
+  html += '<div class="inningsTitle">1st Innings — '+M.innings1.battingTeam+' ('+M.innings1.runs+'/'+M.innings1.wickets+', '+oversStr(M.innings1.legalBalls)+' ov)</div>';
+  html += battingTable(M.innings1);
+  html += bowlingTable(M.innings1);
+  html += '<div class="small">Extras: WD '+M.innings1.extras.wd+' • NB '+M.innings1.extras.nb+' • B '+M.innings1.extras.b+' • LB '+M.innings1.extras.lb+'</div>';
+
+  if(M.innings2){
+    html += '<div class="inningsTitle">2nd Innings — '+M.innings2.battingTeam+' ('+M.innings2.runs+'/'+M.innings2.wickets+', '+oversStr(M.innings2.legalBalls)+' ov)</div>';
+    html += battingTable(M.innings2);
+    html += bowlingTable(M.innings2);
+    html += '<div class="small">Extras: WD '+M.innings2.extras.wd+' • NB '+M.innings2.extras.nb+' • B '+M.innings2.extras.b+' • LB '+M.innings2.extras.lb+'</div>';
+  }
+  box.innerHTML = html;
+}
+
+/* ---------- Startup ---------- */
+(function init(){
+  updateExtraButtonsUI();
+  M = load();
+  if(M){
+    document.getElementById('setupBox').classList.add('hidden');
+    document.getElementById('liveBox').classList.remove('hidden');
+    render();
+  } else {
+    renderTopBarDefault();
+  }
+  // OBS overlay mode: URL me ?overlay=1 dene se sirf top bar dikhega, control app chup jayega
+  const q = new URLSearchParams(location.search);
+  if(q.get('overlay')==='1'){ document.getElementById('appSection').style.display='none'; }
+})();
+</script>
+</body>
+</html>
 
   <div id="syncStatus" class="off">⚪ Checking sync...</div>
 
